@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Self
 
 class RowStruct():
     def __iter__(self):
@@ -20,12 +20,16 @@ class RowStruct():
         return self.column_names.index(name) if isinstance(name, str) else name
 
 class Row():
-    def __init__(self, struct:RowStruct):
+    def __init__(self, struct:RowStruct, content = None):
         self.struct = struct
-        self.content = [None] * len(struct)
+        self.content = [None] * len(struct) if content is None else content
+
+    def __str__(self):
+        return f"{self.content}"
 
     def col(self, name:str):
-        return self.content[self.struct.col(name)]
+        c = self.content[self.struct.col(name)]
+        return Row(RowStruct(**{f"{type(c)}": name}), c)
 
     def append(self, item, nv):
         try:
@@ -34,20 +38,16 @@ class Row():
         except ValueError:
             return "Column not found"
 
+
 class Table():
     entries:list[Row]
     struct:RowStruct
 
-    @property
-    def column(self, name:str):
+    def column(self, name: str | int):
         for i in self.entries:
             yield i.col(name)
 
-    @property
-    def column(self, name:int):
-        for i in self.entries:
-            yield i.col(name)
-
+    # Builds a nice little print table
     def __str__(self):
         names = self.struct.column_names
         if not names:
@@ -72,22 +72,22 @@ class Table():
         out.append(rule("└", "┴", "┘"))
         return "\n".join(out)
 
-    def __init__(self):
-        self.entries = []
-        self.struct = RowStruct()
+    def __init__(self, t:list[Row] = []):
+        self.entries = t
+        self.struct = RowStruct() if len(t) == 0 else t[0].struct
 
-    def find(self, var, col_name=None):
+    def select(self, var, col_name=None):
         if col_name is None:
             t:Type = type(var)
             for i in self.struct:
                 if self.struct.columns[i] == t:
-                    for j in self.column(i):
-                        if j == var:
-                            yield self.entries[j]
+                    for j in self.entries:
+                        if var in j.content:
+                            yield j
         else:
             for j in self.column(col_name):
-                if j == var:
-                    yield self.entries[j]
+                if var in j.content:
+                    yield j
 
     def addCols(self, **args):
         self.struct.add(**args)
@@ -102,6 +102,10 @@ class Table():
             r.append(item[0], item[1])
         self.entries.append(r)
 
+class TChain(Table):
+    def __init__(self):
+        super().__init__()
+
 if __name__ == "__main__":
     t = Table()
     t.addCols(string=str, fart=bool, toot=int)
@@ -109,6 +113,12 @@ if __name__ == "__main__":
     t.add(string="shid")
     t.add(string="graaaaaaaaaaaaa", fart=False, toot=0)
     t.add(s="a")
+
+    for i in t.select("shid", "string"):
+        print(i)
+
+    for i in t.select("shid"):
+            print(i)
 
     print(t)
 

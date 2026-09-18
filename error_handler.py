@@ -1,3 +1,3 @@
-class Handler():
+class ErrorHandler():
     def __init__():
         None
