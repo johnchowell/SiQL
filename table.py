@@ -82,7 +82,7 @@ class Table():
             for i in self.struct:
                 if self.struct.columns[i] == t:
                     for j in self.entries:
-                        if var in j.content:
+                        if var == j.content[i]:
                             yield j
         else:
             for j in self.column(col_name):
@@ -108,17 +108,15 @@ class TChain(Table):
 
 if __name__ == "__main__":
     t = Table()
-    t.addCols(string=str, fart=bool, toot=int)
-    t.add(string="doodoo", fart=True, toot=12)
-    t.add(string="shid")
-    t.add(string="graaaaaaaaaaaaa", fart=False, toot=0)
-    t.add(s="a")
+    t.addCols(name=str, address=str, phone=str)
+    t.add(name="John Doe", address="123 Place St.", phone="(592) 010-2345")
+    t.add(name="Jimmy Doe", address="123 Place St. (Basement)")
 
-    for i in t.select("shid", "string"):
+    for i in t.select("John Doe"):
         print(i)
 
-    for i in t.select("shid"):
-            print(i)
+    for i in t.select("Jimmy Doe", "name"):
+        print(i)
 
     print(t)
 
