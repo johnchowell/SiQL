@@ -4,9 +4,11 @@ import uuid
 from typing import Type, Self
 
 try:
-    from .table_file import TableDiff, DiffOp, AddCol, AddRow, SetCell
+    from .table_file import TableDiff, DiffOp, AddCol, AddRow, SetCell, commit_line
 except ImportError:
-    from table_file import TableDiff, DiffOp, AddCol, AddRow, SetCell
+    from table_file import TableDiff, DiffOp, AddCol, AddRow, SetCell, commit_line
+
+FILE_ENCODING = "utf-8"
 
 class RowStruct():
     def __iter__(self):
@@ -98,9 +100,7 @@ class Table():
         self._buffer = io.StringIO()
 
         if os.path.exists(self._file):
-            with open(self._file, "r") as f:
-                for op in TableDiff.loads(f.read()):
-                    op.apply(self)
+            self._load()
 
         if t:
             if len(self.struct) or self.rows:
@@ -111,29 +111,51 @@ class Table():
             self.cols = {name: [r.col(name) for r in self.rows] for name in self.struct.column_names}
             initial = [AddCol(n, ty, i) for i, (n, ty) in enumerate(zip(self.struct.column_names, self.struct.columns))]
             initial += [AddRow(i, {n: r.col(n).value for n in self.struct.column_names}) for i, r in enumerate(self.rows)]
-            self._buffer.write("".join(op.dumps() for op in initial))
+            self._buffer.write(commit_line(initial))
         self.save()
+
+    def _load(self):
+        """Replay the table file. A trailing partial line (from a write cut off by a crash) is discarded
+        and truncated away so later appends start on a clean line."""
+        with open(self._file, "r+b") as f:
+            data = f.read()
+            end = data.rfind(b"\n") + 1
+            if end < len(data):
+                f.truncate(end)
+        for op in TableDiff.loads(data[:end].decode(FILE_ENCODING)):
+            op.apply(self)
 
     def save(self):
         """Flush buffered changes to the end of the table file."""
         data = self._buffer.getvalue()
         if data or not os.path.exists(self._file):
-            with open(self._file, "a") as f:
+            with open(self._file, "a", encoding=FILE_ENCODING) as f:
                 f.write(data)
         self._buffer.seek(0)
         self._buffer.truncate()
 
     def _commit(self, ops:list[DiffOp]):
-        """Apply ops to the table, write each to the buffer, then save the buffer to the file."""
+        """Apply ops as one all-or-nothing change.
+        The whole change is serialized into a single buffered line before anything is applied. If any op
+        fails, the ones already applied are rolled back and nothing is written. Otherwise the line is saved
+        in one write; a crash mid-write leaves a partial last line, which is dropped on load.
+        """
+        if not ops:
+            return
+        line = commit_line(ops)  # raises TypeError for unwritable values before anything changes
+        undo = []
         try:
             for op in ops:
-                line = op.dumps()  # serialize first so an unwritable value doesn't leave an unlogged change
-                op.apply(self)
-                self._buffer.write(line)
-        finally:
-            self.save()
+                undo.append(op.apply(self))
+        except Exception:
+            for u in reversed(undo):
+                u()
+            raise
+        self._buffer.write(line)
+        self.save()
 
-    # Low-level mutations used by DiffOps. They don't log; go through _commit for that.
+    # Low-level mutations used by DiffOps. They don't log (go through _commit for that) and either
+    # raise before changing anything or return a function that undoes the change.
     def _insert_col(self, name:str, type:Type, index:int):
         if name in self.cols:
             raise ValueError(f"Column already exists: {name}")
@@ -144,34 +166,59 @@ class Table():
         for r in self.rows:
             r.content.insert(index, Cell())
         self.cols[name] = [r.col(name) for r in self.rows]
+        return lambda: self._drop_col(name)
 
     def _drop_col(self, name:str):
         i = self.struct.col(name)
         for r in self.rows:
             r._fill()
-            r.content.pop(i)
-        self.struct.columns.pop(i)
+        type = self.struct.columns.pop(i)
         self.struct.column_names.pop(i)
-        self.cols.pop(name)
+        removed = [r.content.pop(i) for r in self.rows]
+        cells = self.cols.pop(name)
+
+        def undo():
+            self.struct.columns.insert(i, type)
+            self.struct.column_names.insert(i, name)
+            for r, c in zip(self.rows, removed):
+                r.content.insert(i, c)
+            self.cols[name] = cells
+        return undo
 
     def _set_col_type(self, name:str, type:Type):
-        self.struct.columns[self.struct.col(name)] = type
+        i = self.struct.col(name)
+        old = self.struct.columns[i]
+        self.struct.columns[i] = type
+        return lambda: self.struct.columns.__setitem__(i, old)
 
     def _insert_row(self, index:int, values:dict):
         r = Row(self.struct)
         for name, value in values.items():
             r.col(name).value = value
+        n = len(self.rows)
+        index = min(index if index >= 0 else max(0, n + index), n)  # same position list.insert would use
         self.rows.insert(index, r)
         for name in self.struct.column_names:
             self.cols[name].insert(index, r.col(name))
+        return lambda: self._drop_row(index)
 
     def _drop_row(self, index:int):
-        self.rows.pop(index)
+        r = self.rows.pop(index)
+        index = index % (len(self.rows) + 1)  # normalize negative indices for undo
         for cells in self.cols.values():
             cells.pop(index)
 
+        def undo():
+            self.rows.insert(index, r)
+            for name in self.struct.column_names:
+                self.cols[name].insert(index, r.col(name))
+        return undo
+
     def _set_cell(self, row:int, col:str, value):
-        self.rows[row].col(col).value = value
+        cell = self.rows[row].col(col)
+        old = cell.value
+        cell.value = value
+        return lambda: setattr(cell, "value", old)
 
     def column(self, name: str | int):
         """Yield cells in a column

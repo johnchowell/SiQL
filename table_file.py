@@ -27,6 +27,7 @@ class DiffOp():
         return ()
 
     def apply(self, table: "Table"):
+        """Apply to `table` without logging. Returns a function that undoes the change."""
         raise NotImplementedError
 
     def to_tuple(self) -> tuple:
@@ -66,7 +67,7 @@ class AddCol(DiffOp):
         return cls(name, _type_from_name(type_name), index)
 
     def apply(self, table: "Table"):
-        table._insert_col(self.name, self.type, self.index)
+        return table._insert_col(self.name, self.type, self.index)
 
 
 class DropCol(DiffOp):
@@ -79,7 +80,7 @@ class DropCol(DiffOp):
         return (self.name,)
 
     def apply(self, table: "Table"):
-        table._drop_col(self.name)
+        return table._drop_col(self.name)
 
 
 class SetColType(DiffOp):
@@ -96,7 +97,7 @@ class SetColType(DiffOp):
         return cls(name, _type_from_name(type_name))
 
     def apply(self, table: "Table"):
-        table._set_col_type(self.name, self.type)
+        return table._set_col_type(self.name, self.type)
 
 
 class AddRow(DiffOp):
@@ -109,7 +110,7 @@ class AddRow(DiffOp):
         return (self.index, self.values)
 
     def apply(self, table: "Table"):
-        table._insert_row(self.index, self.values)
+        return table._insert_row(self.index, self.values)
 
 
 class DropRow(DiffOp):
@@ -122,7 +123,7 @@ class DropRow(DiffOp):
         return (self.index,)
 
     def apply(self, table: "Table"):
-        table._drop_row(self.index)
+        return table._drop_row(self.index)
 
 
 class SetCell(DiffOp):
@@ -135,18 +136,35 @@ class SetCell(DiffOp):
         return (self.row, self.col, self.value)
 
     def apply(self, table: "Table"):
-        table._set_cell(self.row, self.col, self.value)
+        return table._set_cell(self.row, self.col, self.value)
 
 
 _OPS: dict[str, type[DiffOp]] = {op.code: op for op in (AddCol, DropCol, SetColType, AddRow, DropRow, SetCell)}
 
 
+def commit_line(ops: list[DiffOp]) -> str:
+    """Serialize one change as a single file line so it is saved (or lost in a crash) all at once.
+    A single op is written as its tuple, several ops as a list of tuples. Raises TypeError for unwritable values.
+    """
+    if len(ops) == 1:
+        return ops[0].dumps()
+    line = repr([op.to_tuple() for op in ops])
+    try:
+        ast.literal_eval(line)
+    except (ValueError, SyntaxError):
+        for op in ops:
+            op.dumps()  # raises TypeError naming the bad op
+        raise
+    return line + "\n"
+
+
 class TableDiff():
     """Ordered list of DiffOps that turns one table into another.
 
-    Text form is one op per line, each a Python literal tuple, e.g.
+    Text form is one Python literal per line: a tuple for a single op, or a list of tuples for a
+    change made of several ops (written together so it's saved all at once), e.g.
         ('+c', 'email', 'str', 3)
-        ('~', 1, 'email', 'email@placeholder.org')
+        [('~', 0, 'email', 'a@x.org'), ('~', 1, 'email', 'b@x.org')]
     so it can be appended to a table file and replayed with `loads` + `apply`.
     Cell values must be Python literals (str, int, float, bool, None, list, dict, ...) to round-trip.
     """
@@ -217,11 +235,12 @@ class TableDiff():
         return cls(ops)
 
     def apply(self, table: "Table") -> "Table":
-        """Apply ops in order to `table` (in place) and return it. The changes are logged to the table's file."""
+        """Apply all ops to `table` (in place) as one all-or-nothing change, save it to the table's file, and return the table."""
         table._commit(self.ops)
         return table
 
     def dumps(self) -> str:
+        """Text form with one op per line. Use `commit_line(diff.ops)` for a single all-at-once line."""
         return "".join(op.dumps() for op in self.ops)
 
     @classmethod
@@ -230,12 +249,13 @@ class TableDiff():
         for line in text.splitlines():
             if not line.strip():
                 continue
-            code, *args = ast.literal_eval(line)
-            ops.append(_OPS[code].from_args(*args))
+            parsed = ast.literal_eval(line)
+            for code, *args in (parsed if isinstance(parsed, list) else [parsed]):
+                ops.append(_OPS[code].from_args(*args))
         return cls(ops)
 
     def write(self, fp: TextIO):
-        """Write the text form to an open file or buffer (e.g. `Table._buffer`)."""
+        """Write the one-op-per-line text form to an open file or buffer. To save to a table, use `apply`."""
         fp.write(self.dumps())
 
 
