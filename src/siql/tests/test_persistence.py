@@ -320,6 +320,32 @@ class CrashRecoveryTests(FileTestCase):
         t.add(i=5)
         self.assertReloadsTo(t)
 
+    def test_exit_with_lazy_deletes_waiting_keeps_them(self):
+        # The process ends without purging its queued deletes; each was saved to the file when it was made
+        child = self.run_child("""
+            import os, sys
+            from PKG.models import Table, TableDiff, AddRow, DropRow
+            t = Table(file=sys.argv[1], lazy_delete=True)
+            t.addCols(name=str, n=int)
+            TableDiff([AddRow(i, {"name": f"r{i}", "n": i}) for i in range(100)]).apply(t)
+            t.find("n", 0)
+            for i in (90, 50, 10, 0):
+                TableDiff([DropRow(i)]).apply(t)
+            print(len(t.index["name"].dead), len(t._deleted), flush=True)
+            os._exit(0)
+        """, self.path)
+        out, err = child.communicate(timeout=60)
+        self.assertEqual(child.returncode, 0, err)
+        self.assertEqual(out.split(), ["4", "4"])  # all four deletes were still waiting at exit
+
+        t = Table(file=self.path, lazy_delete=True)
+        expected = [f"r{i}" for i in range(100) if i not in (0, 10, 50, 90)]
+        self.assertEqual([r.col("name").value for r in t.rows], expected)
+        self.assertEqual(t.index["name"].dead, set())
+        self.assertEqual(t.find("name", "r50"), [])
+        self.assertEqual(t.find("name", "r51"), [48])
+        self.assertConsistent(t)
+
     def test_hard_kill_during_large_changes_keeps_them_whole(self):
         # Each change adds BATCH rows in one commit; its line is far larger than Python's write buffer,
         # so a kill can land part-way through writing it

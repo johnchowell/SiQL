@@ -23,7 +23,19 @@ class RowStruct():
 class Cell():
     """Mutable value holder shared between a table's rows and columns."""
     def __init__(self, value=None):
-        self.value = value
+        self._value = value
+        self._tree = None  # the ColumnTree indexing this cell, told about every change
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        old = self._value
+        self._value = value
+        if self._tree is not None:
+            self._tree.changed(self, old)
 
     def __str__(self):
         return str(self.value)

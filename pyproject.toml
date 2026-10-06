@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Database",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -31,9 +32,18 @@ Homepage = "https://github.com/johnchowell/SiQL"
 Source = "https://github.com/johnchowell/SiQL"
 Issues = "https://github.com/johnchowell/SiQL/issues"
 
+[project.scripts]
+siql = "siql.controllers.shell:main"
+siql-server = "siql.server.cli:main"
+
+# Development only, not installed with the package: pip install -e . --group dev
+[dependency-groups]
+dev = ["build>=1.2", "twine>=6.1", { include-group = "bench" }]
+bench = ["matplotlib>=3.10"]
+
 [tool.setuptools.dynamic]
-version = { attr = "SiQL.__version__" }
+version = { attr = "siql.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["SiQL.tests", "SiQL.tests.*"]
+exclude = ["siql.tests", "siql.tests.*"]

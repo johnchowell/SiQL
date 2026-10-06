@@ -1,4 +1,4 @@
-"""Demo: python -m SiQL"""
+"""Demo: python -m siql.demo"""
 from .models import Table
 
 if __name__ == "__main__":
