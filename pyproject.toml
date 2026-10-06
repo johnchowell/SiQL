@@ -38,7 +38,7 @@ siql-server = "siql.server.cli:main"
 
 # Development only, not installed with the package: pip install -e . --group dev
 [dependency-groups]
-dev = ["build>=1.2", "twine>=6.1", { include-group = "bench" }]
+dev = ["build>=1.2", "twine>=6.1", "flake8>=7.1", { include-group = "bench" }]
 bench = ["matplotlib>=3.10"]
 
 [tool.setuptools.dynamic]

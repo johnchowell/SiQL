@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from .models import Table, Row, RowStruct, Cell, TableDiff
 from .managers import table_file, Database
