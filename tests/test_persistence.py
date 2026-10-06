@@ -1,6 +1,6 @@
 """Tests for Table file persistence and crash recovery.
 
-Run from this folder with: python -m unittest tests -v
+Run from the repository root with: python -m unittest discover -s tests -t .. -v
 """
 import os
 import random
@@ -10,10 +10,11 @@ import tempfile
 import textwrap
 import unittest
 
-from table import Table, Row, RowStruct
-from table_file import TableDiff, AddCol, DropCol, SetColType, AddRow, DropRow, SetCell
+from ..models import Table, Row, RowStruct, TableDiff, AddCol, DropCol, SetColType, AddRow, DropRow, SetCell
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# Name of the package under test and the folder containing it, so child processes can import it too
+PKG = __package__.rpartition(".")[0]
+PKG_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def snapshot(t: Table):
@@ -52,10 +53,10 @@ class FileTestCase(unittest.TestCase):
         return loaded
 
     def run_child(self, code: str, *args, **kwargs) -> subprocess.Popen:
-        """Start a separate Python process that can import table.py."""
-        env = dict(os.environ, PYTHONPATH=HERE, PYTHONIOENCODING="utf-8")
+        """Start a separate Python process that can import the package. `PKG` in `code` is its name."""
+        env = dict(os.environ, PYTHONPATH=PKG_PARENT, PYTHONIOENCODING="utf-8")
         return subprocess.Popen(
-            [sys.executable, "-c", textwrap.dedent(code), *args],
+            [sys.executable, "-c", textwrap.dedent(code).replace("PKG", PKG), *args],
             env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", **kwargs,
         )
 
@@ -238,7 +239,7 @@ class SaveTests(FileTestCase):
     def test_saved_by_one_process_loaded_by_another(self):
         child = self.run_child("""
             import sys
-            from table import Table
+            from PKG.models import Table
             t = Table(file=sys.argv[1])
             t.addCols(name=str, n=int)
             for i in range(25):
@@ -256,7 +257,7 @@ class CrashRecoveryTests(FileTestCase):
     # Child that keeps adding rows and reports each one only after add() has returned (i.e. was saved)
     WRITER = """
         import sys
-        from table import Table
+        from PKG.models import Table
         t = Table(file=sys.argv[1])
         if not t.struct.column_names:
             t.addCols(i=int, text=str)
@@ -304,7 +305,7 @@ class CrashRecoveryTests(FileTestCase):
     def test_kill_before_flush_loses_only_the_unsaved_change(self):
         child = self.run_child("""
             import os, sys
-            from table import Table
+            from PKG.models import Table
             t = Table(file=sys.argv[1])
             t.addCols(i=int)
             for i in range(5):
@@ -325,8 +326,8 @@ class CrashRecoveryTests(FileTestCase):
         batch = 200
         writer = """
             import sys
-            from table import Table
-            from table_file import TableDiff, AddRow
+            from PKG.models import Table
+            from PKG.models import TableDiff, AddRow
             t = Table(file=sys.argv[1])
             if not t.struct.column_names:
                 t.addCols(i=int, text=str)
@@ -359,7 +360,7 @@ class CrashRecoveryTests(FileTestCase):
     def test_kill_mid_write_recovers_from_torn_line(self):
         child = self.run_child("""
             import os, sys
-            from table import Table
+            from PKG.models import Table
             t = Table(file=sys.argv[1])
             t.addCols(i=int, flag=bool)
             for i in range(20):

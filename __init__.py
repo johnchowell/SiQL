@@ -1,5 +1,6 @@
-from .table import Table, Row, RowStruct, Cell
-from .interpreter import Command
-from .error_handler import ErrorHandler
+from .models import Table, Row, RowStruct, Cell, TableDiff
+from .controllers import Command
+from .managers import table_file
+from .helpers import ErrorHandler
 
-__all__ = ["Table", "Row", "RowStruct", "Cell", "Command", "ErrorHandler"]
+__all__ = ["Table", "Row", "RowStruct", "Cell", "TableDiff", "Command", "table_file", "ErrorHandler"]

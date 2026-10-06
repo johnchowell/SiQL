@@ -1,4 +1,4 @@
-from .table import Table
+from ..models.table import Table
 
 class Command():
     SELECT = 0
