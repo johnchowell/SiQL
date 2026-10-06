@@ -21,7 +21,8 @@ SiQL/
 │   ├── error_handler.py # ErrorHandler
 │   └── types.py         # column type <-> name conversion for table files
 └── tests/
-    └── test_persistence.py
+    ├── test_core.py         # package layout, models, diff, manager, controller, helpers
+    └── test_persistence.py  # file saving and crash recovery
 ```
 
 ## Running
