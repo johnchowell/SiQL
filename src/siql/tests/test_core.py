@@ -61,7 +61,7 @@ class PackageLayoutTests(unittest.TestCase):
         "models.row", "models.diff", "models.tree", "models.table",
         "controllers.parser", "controllers.interpreter", "controllers.shell",
         "managers.table_file", "managers.database",
-        "helpers.error_handler", "helpers.types", "helpers.format",
+        "helpers.error_handler", "helpers.types", "helpers.format", "helpers.search",
         "server.config", "server.app", "server.service", "server.cli", "demo",
     ]
 

@@ -8,6 +8,7 @@ from .row import RowStruct, Cell, Row
 from .diff import TableDiff, DiffOp, AddCol, AddRow, SetCell, commit_line
 from .tree import ColumnTree
 from ..helpers.format import box
+from ..helpers.search import scan, EQ
 
 FILE_ENCODING = "utf-8"
 
@@ -303,7 +304,7 @@ class Table():
         if isinstance(col_name, int):
             col_name = self.struct.column_names[col_name]
         if self.index is None:
-            return [i for i, cell in enumerate(self.cols[col_name]) if value == cell.value]
+            return scan(self.cols[col_name], EQ, value, True)
         rows = self.index[col_name].find(value)
         if not rows:
             return []

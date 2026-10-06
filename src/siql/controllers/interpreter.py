@@ -8,9 +8,10 @@ from ..models.table import Table
 from ..models.diff import TableDiff, AddCol, DropCol, SetColType, RenameCol, AddRow, DropRow, SetCell
 from ..managers.database import Database
 from ..helpers.format import box
+from ..helpers.search import scan, scan_match, values, SCAN_OPS, EQ, IS_NULL, NOT_NULL
 from ..helpers.types import type_name
-from .parser import (QueryError, OPERATORS, parse, Statement, Expr, Column, Literal, Compare, And,
-                     CreateTable, DropTable, AddColumn,
+from .parser import (QueryError, OPERATORS, parse, Statement, Expr, Column, Literal, Compare, And, Or, Not,
+                     IsNull, In, Like, CreateTable, DropTable, AddColumn,
                      DropColumn, AlterColumn, Insert, Select, Update, Delete, ShowTables, Describe,
                      RenameColumn, RenameTable, CopyTable, Truncate, Compact, Use, ShowFiles, Import, Export)
 
@@ -199,23 +200,57 @@ class Interpreter():
         return {n: row.col(j).value for j, n in enumerate(table.struct.column_names)}
 
     @staticmethod
-    def _candidates(table: Table, where: Expr) -> list[int] | None:
-        """Rows passing a `column = value` test that the whole condition requires, found with the table's
-        search tree. None if there's no such test or the tree is off."""
-        if not table.tree:
-            return None
-        for e in (where.items if isinstance(where, And) else [where]):
-            if isinstance(e, Compare) and OPERATORS[e.op] is OPERATORS["="]:
-                column, literal = (e.left, e.right) if isinstance(e.left, Column) else (e.right, e.left)
-                if isinstance(column, Column) and isinstance(literal, Literal):
-                    return table.find(column.name, literal.value)
+    def _scan_where(table: Table, e: Expr) -> set[int] | None:
+        """Rows matching `e`, found with the search tree or whole-column scans instead of evaluating `e` row by
+        row. None if part of it can't be answered that way, such as a comparison between two columns."""
+        everything = range(len(table.rows))
+        column = getattr(e, "operand", None)
+        if isinstance(e, Compare):
+            if isinstance(e.left, Literal) and isinstance(e.right, Literal):
+                return set(everything) if e.eval({}) else set()
+            if isinstance(e.left, Column) and isinstance(e.right, Literal):
+                name, value, value_first = e.left.name, e.right.value, False
+            elif isinstance(e.left, Literal) and isinstance(e.right, Column):
+                name, value, value_first = e.right.name, e.left.value, True
+            else:
+                return None
+            op = SCAN_OPS[e.op]
+            if op == EQ and table.tree:
+                return set(table.find(name, value))
+            return set(scan(table.cols[name], op, value, value_first))
+        if isinstance(e, IsNull) and isinstance(column, Column):
+            return set(scan(table.cols[column.name], NOT_NULL if e.negate else IS_NULL, None))
+        if isinstance(e, Like) and isinstance(column, Column):
+            return set(scan_match(table.cols[column.name], e._regex.fullmatch, e.negate))
+        if isinstance(e, In) and isinstance(column, Column) and all(isinstance(v, Literal) for v in e.values):
+            found = set()
+            for v in e.values:
+                found.update(table.find(column.name, v.value) if table.tree
+                             else scan(table.cols[column.name], EQ, v.value))
+            return set(everything) - found if e.negate else found
+        if isinstance(e, Not):
+            inner = Interpreter._scan_where(table, e.item)
+            return None if inner is None else set(everything) - inner
+        if isinstance(e, (And, Or)):
+            parts = [Interpreter._scan_where(table, item) for item in e.items]
+            if any(p is None for p in parts):
+                return None
+            return set.intersection(*parts) if isinstance(e, And) else set.union(*parts)
         return None
 
     def _matching(self, table: Table, where: Expr | None) -> list[int]:
         if where is None:
             return list(range(len(table.rows)))
         self._check_columns(table, where.columns())
-        candidates = self._candidates(table, where)
+        found = self._scan_where(table, where)
+        if found is not None:
+            return sorted(found)
+        # Narrow down with the parts of an AND that can be scanned, then check the rest row by row
+        candidates = None
+        if isinstance(where, And):
+            known = [p for p in (self._scan_where(table, item) for item in where.items) if p is not None]
+            if known:
+                candidates = sorted(set.intersection(*known))
         indices = range(len(table.rows)) if candidates is None else candidates
         return [i for i in indices if where.eval(self._record(table, i))]
 
@@ -278,17 +313,22 @@ class Interpreter():
     def _select(self, s: Select) -> Result:
         t = self._table(s.table)
         self._check_columns(t, (s.columns or []) + [c for c, _ in s.order])
-        rows = [self._record(t, i) for i in self._matching(t, s.where)]
+        indices = self._matching(t, s.where)
         # Stable sorts from the last key to the first give a multi-column ORDER BY; NULLs sort first
         for column, descending in reversed(s.order):
+            vals = values(t.cols[column])
+            nulls = [i for i in indices if vals[i] is None]
+            rest = [i for i in indices if vals[i] is not None]
             try:
-                rows.sort(key=lambda r: (r[column] is not None, r[column]), reverse=descending)
+                rest.sort(key=vals.__getitem__, reverse=descending)
             except TypeError:
                 raise QueryError(f"Can't order by {column}: it holds values of different types") from None
-        rows = rows[s.offset:None if s.limit is None else s.offset + s.limit]
+            indices = rest + nulls if descending else nulls + rest
+        indices = indices[s.offset:None if s.limit is None else s.offset + s.limit]
         if s.count:
-            return Result(["count"], [[len(rows)]], 1, _plural(len(rows), "row"))
+            return Result(["count"], [[len(indices)]], 1, _plural(len(indices), "row"))
         columns = s.columns or list(t.struct.column_names)
+        rows = [self._record(t, i) for i in indices]
         return Result(columns, [[r[c] for c in columns] for r in rows], len(rows), _plural(len(rows), "row"))
 
     def _update(self, s: Update) -> Result:

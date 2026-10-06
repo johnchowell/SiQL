@@ -47,3 +47,15 @@ version = { attr = "siql.__version__" }
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["siql.tests", "siql.tests.*"]
+
+# C versions of the search functions. Optional: without a C compiler, siql installs without them and uses the
+# Python versions in siql/helpers/search.py
+[[tool.setuptools.ext-modules]]
+name = "siql._speedups"
+sources = ["src/siql/_speedups.c"]
+py-limited-api = true
+optional = true
+
+# Built against the stable ABI, so one wheel per platform works on Python 3.11 and later
+[tool.distutils.bdist_wheel]
+py-limited-api = "cp311"
