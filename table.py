@@ -47,6 +47,7 @@ class Row():
             self.content.append(Cell())
 
     def col(self, name: str | int) -> Cell:
+        """Get cell by column"""
         try:
             i = self.struct.col(name)
         except ValueError:
@@ -55,6 +56,11 @@ class Row():
         return self.content[i]
 
     def append(self, item, nv):
+        """Set cell by column name
+        Args:
+            item: column name
+            nv: new value
+        """
         try:
             self.col(item).value = nv
         except IndexError:
@@ -71,6 +77,10 @@ class Table():
         return self.rows
 
     def column(self, name: str | int):
+        """Yield cells in a column
+        Args:
+            name: column name or index
+        """
         if isinstance(name, int):
             name = self.struct.column_names[name]
         yield from self.cols[name]
@@ -107,6 +117,11 @@ class Table():
         self.cols = {name: [r.col(name) for r in self.rows] for name in self.struct.column_names}
 
     def select(self, var, col_name=None):
+        """Select rows by value
+        Args:
+            var: value to match
+            col_name: column to check
+        """
         if col_name is None:
             t:Type = type(var)
             for i in self.struct:
@@ -120,26 +135,40 @@ class Table():
                     yield row
 
     def addCols(self, **args):
+        """Add new columns
+        Args:
+            **args: column names and types
+        """
         self.struct.add(**args)
         for name in args:
             self.cols[name] = [r.col(name) for r in self.rows]
 
     def editByName(self, col, where, change):
+        """Edit cells by column name and value. Will edit multiple cells if they fit the condition.
+        Args:
+            col: column name
+            where: value to match
+            change: new value
+        """
         for cell in self.column(col):
             if cell.value == where:
                 cell.value = change
 
     def add(self, **args):
+        """Add columns with keyword args as name=type
+        Args:
+            **args: column names and types
+        Returns:
+            None
+        Example:
+            `table.add(address=str, object=object)`
+        """
         r = Row(self.struct)
         for item in args.items():
             r.append(item[0], item[1])
         self.rows.append(r)
         for name in self.struct.column_names:
             self.cols[name].append(r.col(name))
-
-class TChain(Table):
-    def __init__(self):
-        super().__init__()
 
 if __name__ == "__main__":
     t = Table()
