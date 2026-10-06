@@ -6,6 +6,14 @@ import unittest
 from unittest import mock
 
 from ..models import Table, Row, RowStruct, TableDiff, AddCol, DropCol, RenameCol, AddRow, DropRow, SetCell, tree_key
+from ..models.tree import order_key
+from ..helpers.search import PySkipList
+
+try:
+    from .._speedups import SkipList as CSkipList
+except ImportError:
+    CSkipList = None
+SKIP_LISTS = [PySkipList] + ([CSkipList] if CSkipList else [])
 from ..controllers import Interpreter
 
 
@@ -47,6 +55,28 @@ class InTempDir(unittest.TestCase):
                     self.assertIn(cell_id, node.branches[key])
             self.assertEqual(node._dead_count, len(dead))
             self.assertEqual(len(node), len(t.rows))
+            for key, branch in node.branches.items():
+                self.assertLanesMatch(key, branch)
+
+    def assertLanesMatch(self, key, branch):
+        """A keyed branch's skip list holds each of its cells exactly once, under the cell's current value,
+        and every lane is in ascending order."""
+        if key is None:
+            self.assertIsNone(branch.lanes)
+            return
+        lanes = branch.lanes
+        filed = {}
+        for node_key, ids in lanes:
+            self.assertTrue(ids)
+            for cell_id in ids:
+                filed[cell_id] = node_key
+        self.assertEqual(filed.keys(), branch.keys())
+        for cell_id, (_, cell) in branch.items():
+            self.assertEqual(filed[cell_id], order_key(cell.value))
+        for lane in range(lanes.height):
+            keys = lanes.lane_keys(lane)
+            self.assertEqual(keys, sorted(keys))
+            self.assertEqual(len(keys), len(set(keys)))
 
     def scan(self, t: Table, col, value):
         return [i for i, c in enumerate(t.cols[col]) if value == c.value]
@@ -66,6 +96,80 @@ class TreeKeyTests(unittest.TestCase):
             with self.subTest(a=a, b=b):
                 self.assertEqual(a, b)
                 self.assertEqual(tree_key(a), tree_key(b))
+
+
+class SkipListTests(unittest.TestCase):
+    """Each test runs on the Python skip list and, when it was compiled, the C one."""
+    def test_insert_get_remove(self):
+        for SkipList in SKIP_LISTS:
+            with self.subTest(SkipList=SkipList):
+                rng = random.Random(5)
+                lanes, expected = SkipList(), {}
+                for cell_id in range(3000):
+                    key = (0, rng.randrange(500))
+                    lanes.insert(key, cell_id)
+                    expected.setdefault(key, set()).add(cell_id)
+                for cell_id in rng.sample(range(3000), 2000):
+                    key = next(k for k, ids in expected.items() if cell_id in ids)
+                    lanes.remove(key, cell_id)
+                    expected[key].remove(cell_id)
+                    if not expected[key]:
+                        del expected[key]
+                self.assertEqual(dict(lanes), expected)
+                self.assertEqual([key for key, _ in lanes], sorted(expected))
+                for v in range(500):
+                    self.assertEqual(lanes.get((0, v)), expected.get((0, v), set()))
+                self.assertGreater(lanes.height, 1)  # it built express lanes
+                for lane in range(lanes.height):
+                    keys = lanes.lane_keys(lane)
+                    self.assertEqual(keys, sorted(keys))
+                    self.assertLessEqual(set(keys), set(expected))
+
+    def test_equal_numbers_share_a_node_and_strings_sort_after_numbers(self):
+        for SkipList in SKIP_LISTS:
+            with self.subTest(SkipList=SkipList):
+                lanes = SkipList()
+                for cell_id, value in enumerate([1, 1.0, True, "1x", 15, "10"]):
+                    lanes.insert(order_key(value), cell_id)
+                self.assertEqual([key for key, _ in lanes], [(0, 1), (0, 15), (1, "10"), (1, "1x")])
+                self.assertEqual(lanes.get(order_key(1.0)), {0, 1, 2})
+                lanes.remove(order_key(True), 2)
+                lanes.remove(order_key(1), 0)
+                self.assertEqual(lanes.get(order_key(1)), {1})
+
+    def test_empty_list_shrinks_back(self):
+        for SkipList in SKIP_LISTS:
+            with self.subTest(SkipList=SkipList):
+                lanes = SkipList()
+                for i in range(200):
+                    lanes.insert((0, i), i)
+                for i in range(200):
+                    lanes.remove((0, i), i)
+                self.assertEqual(list(lanes), [])
+                self.assertEqual(lanes.height, 1)
+                self.assertEqual(lanes.get((0, 3)), set())
+
+    def test_removing_something_missing_raises_key_error(self):
+        for SkipList in SKIP_LISTS:
+            with self.subTest(SkipList=SkipList):
+                lanes = SkipList()
+                lanes.insert((0, 1), 10)
+                with self.assertRaises(KeyError):
+                    lanes.remove((0, 2), 10)
+                with self.assertRaises(KeyError):
+                    lanes.remove((0, 1), 99)
+                self.assertEqual(lanes.get((0, 1)), {10})
+
+    def test_comparison_errors_propagate_and_leave_it_intact(self):
+        for SkipList in SKIP_LISTS:
+            with self.subTest(SkipList=SkipList):
+                lanes = SkipList()
+                lanes.insert((0, 1), 1)
+                with self.assertRaises(TypeError):
+                    lanes.insert((0, "x"), 2)  # 1 < "x" raises
+                with self.assertRaises(TypeError):
+                    lanes.get((0, "x"))
+                self.assertEqual(list(lanes), [((0, 1), {1})])
 
 
 class TreeTests(InTempDir):

@@ -33,9 +33,16 @@ jobs:
         flake8 src benchmarks --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 src benchmarks --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test
+    - name: Test with the C extension
+      env:
+        SIQL_REQUIRE_SPEEDUPS: "1"  # fail instead of quietly falling back if the extension didn't compile
       run: |
         python -m unittest discover -s src/siql/tests -t src -v
+    - name: Test the pure-Python fallback
+      env:
+        SIQL_PURE_PYTHON: "1"
+      run: |
+        python -m unittest discover -s src/siql/tests -t src
     - name: Build and check the distribution
       run: |
         python -m build

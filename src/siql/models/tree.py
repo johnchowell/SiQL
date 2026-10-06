@@ -2,6 +2,8 @@
 import numbers
 from typing import TYPE_CHECKING
 
+from ..helpers.search import SkipList
+
 if TYPE_CHECKING:
     from .row import Row, Cell
 
@@ -19,18 +21,50 @@ def tree_key(value) -> str | None:
     return None
 
 
+def order_key(value) -> tuple:
+    """Sort key for a value in a keyed branch. Numbers sort before strings, so the two are never compared."""
+    return (1, value) if isinstance(value, str) else (0, value)
+
+
+class Branch(dict):
+    """One branch: `id(cell)` -> `(row, cell)` for every cell in it. String and number branches also keep their
+    values in a SkipList, so a lookup can jump to a value; other values (None, lists, nan, ...) can't be ordered
+    and are checked one by one."""
+    __slots__ = ("lanes",)
+
+    def __init__(self, ordered: bool):
+        super().__init__()
+        self.lanes = SkipList() if ordered else None
+
+    def put(self, row: "Row", cell: "Cell"):
+        if self.lanes is not None and id(cell) not in self:
+            self.lanes.insert(order_key(cell.value), id(cell))
+        self[id(cell)] = (row, cell)
+
+    def take(self, cell_id: int, value) -> tuple["Row", "Cell"]:
+        """Remove a cell that was filed under `value`."""
+        if self.lanes is not None:
+            self.lanes.remove(order_key(value), cell_id)
+        return self.pop(cell_id)
+
+    def matching(self, value) -> list[tuple["Row", "Cell"]]:
+        if self.lanes is None:
+            return [entry for entry in self.values() if value == entry[1].value]
+        return [self[cell_id] for cell_id in self.lanes.get(order_key(value))]
+
+
 class ColumnTree():
     """One column's layer of a Table's tree.
 
-    `branches[key]` maps `id(cell)` to `(row, cell)`, where `row` is the Row object in `table.rows` and `cell`
-    is the Cell object shared by that row and `table.cols[column]`. Cells notify the tree when their value
-    changes, so it stays current however the value is set.
+    `branches[key]` is a Branch mapping `id(cell)` to `(row, cell)`, where `row` is the Row object in `table.rows`
+    and `cell` is the Cell object shared by that row and `table.cols[column]`. Cells notify the tree when their
+    value changes, so it stays current however the value is set.
 
     With lazy deletes, a deleted row's cell is queued under its branch instead of being unlinked straight away.
     A search unlinks the queued cells of just the branches it reads, before reading them.
     """
     def __init__(self):
-        self.branches: dict[str | None, dict[int, tuple["Row", "Cell"]]] = {}
+        self.branches: dict[str | None, Branch] = {}
         self._dead: dict[str | None, set[int]] = {}  # branch key -> ids of queued cells in that branch
         self._dead_count = 0
 
@@ -48,13 +82,16 @@ class ColumnTree():
 
     def add(self, row: "Row", cell: "Cell"):
         key = tree_key(cell.value)
-        self.branches.setdefault(key, {})[id(cell)] = (row, cell)
+        branch = self.branches.get(key)
+        if branch is None:
+            branch = self.branches[key] = Branch(ordered=key is not None)
+        branch.put(row, cell)
         self._unqueue(key, id(cell))
         cell._tree = self
 
     def remove(self, cell: "Cell"):
         key = tree_key(cell.value)
-        self._pop(key, cell)
+        self._take(key, id(cell), cell.value)
         self._unqueue(key, id(cell))
         cell._tree = None
 
@@ -87,7 +124,7 @@ class ColumnTree():
             if queued:
                 branch = self.branches[key]
                 for cell_id in queued:
-                    branch.pop(cell_id)[1]._tree = None
+                    branch.take(cell_id, branch[cell_id][1].value)[1]._tree = None
                 self._dead_count -= len(queued)
                 if not branch:
                     del self.branches[key]
@@ -95,31 +132,41 @@ class ColumnTree():
                 entries.extend(self.branches.get(key, {}).values())
         return entries
 
-    def _pop(self, key, cell):
+    def _take(self, key, cell_id: int, value):
         branch = self.branches[key]
-        entry = branch.pop(id(cell))
+        entry = branch.take(cell_id, value)
         if not branch:
             del self.branches[key]
         return entry
 
     def changed(self, cell: "Cell", old):
-        """Move a cell to the branch for its new value. Called by the cell itself."""
-        old_key, new_key = tree_key(old), tree_key(cell.value)
-        if old_key != new_key:
-            self.branches.setdefault(new_key, {})[id(cell)] = self._pop(old_key, cell)
-            if self._unqueue(old_key, id(cell)):  # a deleted row's cell changed; keep it queued with its branch
-                self._dead.setdefault(new_key, set()).add(id(cell))
-                self._dead_count += 1
+        """Refile a cell under its new value. Called by the cell itself."""
+        new = cell.value
+        old_key, new_key = tree_key(old), tree_key(new)
+        if old_key == new_key:
+            if old_key is not None and order_key(old) != order_key(new):
+                branch = self.branches[old_key]
+                branch.put(*branch.take(id(cell), old))
+            return
+        entry = self._take(old_key, id(cell), old)
+        branch = self.branches.get(new_key)
+        if branch is None:
+            branch = self.branches[new_key] = Branch(ordered=new_key is not None)
+        branch.put(*entry)
+        if self._unqueue(old_key, id(cell)):  # a deleted row's cell changed; keep it queued with its branch
+            self._dead.setdefault(new_key, set()).add(id(cell))
+            self._dead_count += 1
 
     def find(self, value) -> list["Row"]:
         """Rows (in no particular order) whose value in this column equals `value`."""
         key = tree_key(value)
-        if key is None and value is not None:
-            # An unusual value might compare equal to anything, so check every branch
-            keys = list(self.branches)
-        elif key is None:
-            keys = [None]
-        else:
-            # Unkeyed values (custom objects, nan, ...) live in the None branch and might still be equal
-            keys = [key, None]
-        return [row for row, cell in self._live(keys) if value == cell.value]
+        if key is None:
+            # An unusual value might compare equal to anything, so check every branch (None only checks its own)
+            keys = [None] if value is None else list(self.branches)
+            return [row for row, cell in self._live(keys) if value == cell.value]
+        # Unkeyed values (custom objects, nan, ...) live in the None branch and might still be equal
+        self._live([key, None], purge_only=True)
+        rows = [row for row, _ in self.branches[key].matching(value)] if key in self.branches else []
+        if None in self.branches:
+            rows += [row for row, _ in self.branches[None].matching(value)]
+        return rows
