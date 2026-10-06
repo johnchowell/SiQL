@@ -90,6 +90,19 @@ class SetColType(DiffOp):
         return table._set_col_type(self.name, self.type)
 
 
+class RenameCol(DiffOp):
+    code = ">c"
+
+    def __init__(self, name: str, new_name: str):
+        self.name, self.new_name = name, new_name
+
+    def args(self):
+        return (self.name, self.new_name)
+
+    def apply(self, table: "Table"):
+        return table._rename_col(self.name, self.new_name)
+
+
 class AddRow(DiffOp):
     code = "+r"
 
@@ -129,7 +142,7 @@ class SetCell(DiffOp):
         return table._set_cell(self.row, self.col, self.value)
 
 
-_OPS: dict[str, type[DiffOp]] = {op.code: op for op in (AddCol, DropCol, SetColType, AddRow, DropRow, SetCell)}
+_OPS: dict[str, type[DiffOp]] = {op.code: op for op in (AddCol, DropCol, SetColType, RenameCol, AddRow, DropRow, SetCell)}
 
 
 def commit_line(ops: list[DiffOp]) -> str:

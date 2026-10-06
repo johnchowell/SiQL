@@ -1,7 +1,7 @@
 """Tests for the package layout and the core (non-file) behavior of models, managers, controllers and helpers.
 
 File saving and crash recovery are covered in test_persistence.py.
-Run from the repository root with: python -m unittest discover -s tests -t .. -v
+Run from the repository root with: python -m unittest discover -s src/siql/tests -t src -v
 """
 import importlib
 import os
@@ -14,9 +14,9 @@ import unittest
 
 from .. import models, controllers, managers, helpers
 from ..models import (Table, Row, RowStruct, Cell, TableDiff, DiffOp, commit_line,
-                      AddCol, DropCol, SetColType, AddRow, DropRow, SetCell)
+                      AddCol, DropCol, SetColType, RenameCol, AddRow, DropRow, SetCell)
 from ..controllers import Command, Interpreter
-from ..managers import table_file
+from ..managers import table_file, Database
 from ..helpers import ErrorHandler, type_name, type_from_name
 
 PKG = __package__.rpartition(".")[0]
@@ -56,12 +56,13 @@ class InTempDir(unittest.TestCase):
 
 
 class PackageLayoutTests(unittest.TestCase):
-    SUBPACKAGES = ["models", "controllers", "managers", "helpers", "tests"]
+    SUBPACKAGES = ["models", "controllers", "managers", "helpers", "server", "tests"]
     MODULES = [
-        "models.row", "models.diff", "models.table",
-        "controllers.interpreter",
-        "managers.table_file",
-        "helpers.error_handler", "helpers.types",
+        "models.row", "models.diff", "models.tree", "models.table",
+        "controllers.parser", "controllers.interpreter", "controllers.shell",
+        "managers.table_file", "managers.database",
+        "helpers.error_handler", "helpers.types", "helpers.format",
+        "server.config", "server.app", "server.service", "server.cli", "demo",
     ]
 
     def test_every_folder_is_a_package(self):
@@ -84,22 +85,38 @@ class PackageLayoutTests(unittest.TestCase):
     def test_root_reexports_are_the_same_objects(self):
         root = importlib.import_module(PKG)
         self.assertEqual(sorted(root.__all__),
-                         sorted(["Table", "Row", "RowStruct", "Cell", "TableDiff", "Command", "table_file", "ErrorHandler"]))
+                         sorted(["Table", "Row", "RowStruct", "Cell", "TableDiff", "table_file", "Database",
+                                 "ErrorHandler", "Command", "Interpreter", "QueryError"]))
         self.assertIs(root.Table, Table)
         self.assertIs(root.Row, Row)
         self.assertIs(root.RowStruct, RowStruct)
         self.assertIs(root.Cell, Cell)
         self.assertIs(root.TableDiff, TableDiff)
         self.assertIs(root.Command, Command)
+        self.assertIs(root.Interpreter, Interpreter)
         self.assertIs(root.table_file, table_file)
+        self.assertIs(root.Database, Database)
         self.assertIs(root.ErrorHandler, ErrorHandler)
+        with self.assertRaises(AttributeError):
+            root.missing
+
+    def test_optional_parts_are_not_imported_with_the_core(self):
+        optional = (f"{PKG}.controllers", f"{PKG}.server")
+        check = f"import sys, {PKG}; print([m for m in sys.modules if m.startswith({optional!r})])"
+        result = run_python("-c", check)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "[]")
+        # The interpreter loads on first use; the server only when imported
+        result = run_python("-c", f"import sys, {PKG}; {PKG}.Interpreter; "
+                                  f"print('{PKG}.controllers' in sys.modules, '{PKG}.server' in sys.modules)")
+        self.assertEqual(result.stdout.strip(), "True False", result.stderr)
 
     def test_classes_live_in_their_layer(self):
         expected = {
             Table: "models.table", Row: "models.row", RowStruct: "models.row", Cell: "models.row",
             TableDiff: "models.diff", DiffOp: "models.diff",
             Command: "controllers.interpreter", Interpreter: "controllers.interpreter",
-            table_file: "managers.table_file", ErrorHandler: "helpers.error_handler",
+            table_file: "managers.table_file", Database: "managers.database", ErrorHandler: "helpers.error_handler",
         }
         for cls, module in expected.items():
             with self.subTest(cls=cls.__name__):
@@ -119,9 +136,20 @@ class PackageLayoutTests(unittest.TestCase):
                 result = run_python("-c", f"import {name}")
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_python_dash_m_runs_queries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run_python("-m", PKG, "-d", tmp, "CREATE TABLE t (x int); INSERT INTO t VALUES (7)")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            result = run_python("-m", PKG, "-d", tmp, "SELECT", "*", "FROM", "t")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("│ 7 │", result.stdout)
+            result = run_python("-m", PKG, "-d", tmp, "SELECT * FROM missing")
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("No such table", result.stderr)
+
     def test_demo_runs_with_unchanged_output(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = run_python("-m", PKG, cwd=tmp)
+            result = run_python("-m", f"{PKG}.demo", cwd=tmp)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stderr, "")
             self.assertEqual(len([f for f in os.listdir(tmp) if f.endswith(".siql")]), 1)
@@ -335,6 +363,36 @@ class DiffModelTests(InTempDir):
         self.assertNotEqual(SetCell(0, "a", 1), SetCell(0, "a", 2))
         with self.assertRaises(TypeError):
             commit_line([AddRow(0, {"a": 1}), SetCell(0, "a", object())])
+
+    def test_rename_col(self):
+        op = RenameCol("a", "b")
+        self.assertEqual(op.to_tuple(), (">c", "a", "b"))
+        self.assertEqual(TableDiff.loads(op.dumps()).ops, [op])
+        t = Table()
+        t.addCols(a=int, c=str)
+        t.add(a=1, c="x")
+        TableDiff([op]).apply(t)
+        self.assertEqual(list(t.cols), ["b", "c"])
+        self.assertConsistent(t)
+        self.assertEqual(snapshot(Table(file=t._file)), (["b", "c"], [int, str], [[1, "x"]]))
+        with self.assertRaises(ValueError):
+            TableDiff([RenameCol("b", "c")]).apply(t)
+        self.assertEqual(list(t.cols), ["b", "c"])
+
+    def test_compact(self):
+        t = Table()
+        t.addCols(a=int)
+        for i in range(20):
+            t.add(a=i)
+        t.editByName("a", 3, 99)
+        TableDiff([DropRow(0), DropRow(0)]).apply(t)
+        before = os.path.getsize(t._file)
+        t.compact()
+        self.assertLess(os.path.getsize(t._file), before)
+        self.assertFalse(os.path.exists(t._file + ".tmp"))
+        self.assertEqual(snapshot(Table(file=t._file)), snapshot(t))
+        t.add(a=100)
+        self.assertEqual(snapshot(Table(file=t._file)), snapshot(t))
 
     def test_write(self):
         import io
