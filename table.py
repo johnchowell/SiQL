@@ -1,4 +1,12 @@
+import io
+import os
+import uuid
 from typing import Type, Self
+
+try:
+    from .table_file import TableDiff, DiffOp, AddCol, AddRow, SetCell
+except ImportError:
+    from table_file import TableDiff, DiffOp, AddCol, AddRow, SetCell
 
 class RowStruct():
     def __iter__(self):
@@ -71,10 +79,99 @@ class Table():
     rows:list[Row]
     cols:dict[str, list[Cell]]
     struct:RowStruct
+    _file:str
 
     @property
     def entries(self) -> list[Row]:
         return self.rows
+
+    def __init__(self, t:list[Row] | None = None, *, file=None):
+        """
+        Args:
+            t: initial rows (only allowed when the file is new or empty)
+            file: table file path. An existing file is loaded by replaying its logged changes.
+        """
+        self.rows = []
+        self.struct = RowStruct()
+        self.cols = {}
+        self._file = (file if file is not None else f"{uuid.uuid4().hex}.siql")
+        self._buffer = io.StringIO()
+
+        if os.path.exists(self._file):
+            with open(self._file, "r") as f:
+                for op in TableDiff.loads(f.read()):
+                    op.apply(self)
+
+        if t:
+            if len(self.struct) or self.rows:
+                raise ValueError(f"Can't pass initial rows for an existing table file: {self._file}")
+            self.rows = t
+            self.struct = t[0].struct
+            # Each column list holds the same Cell objects as the rows, so edits are visible both ways
+            self.cols = {name: [r.col(name) for r in self.rows] for name in self.struct.column_names}
+            initial = [AddCol(n, ty, i) for i, (n, ty) in enumerate(zip(self.struct.column_names, self.struct.columns))]
+            initial += [AddRow(i, {n: r.col(n).value for n in self.struct.column_names}) for i, r in enumerate(self.rows)]
+            self._buffer.write("".join(op.dumps() for op in initial))
+        self.save()
+
+    def save(self):
+        """Flush buffered changes to the end of the table file."""
+        data = self._buffer.getvalue()
+        if data or not os.path.exists(self._file):
+            with open(self._file, "a") as f:
+                f.write(data)
+        self._buffer.seek(0)
+        self._buffer.truncate()
+
+    def _commit(self, ops:list[DiffOp]):
+        """Apply ops to the table, write each to the buffer, then save the buffer to the file."""
+        try:
+            for op in ops:
+                line = op.dumps()  # serialize first so an unwritable value doesn't leave an unlogged change
+                op.apply(self)
+                self._buffer.write(line)
+        finally:
+            self.save()
+
+    # Low-level mutations used by DiffOps. They don't log; go through _commit for that.
+    def _insert_col(self, name:str, type:Type, index:int):
+        if name in self.cols:
+            raise ValueError(f"Column already exists: {name}")
+        for r in self.rows:
+            r._fill()
+        self.struct.columns.insert(index, type)
+        self.struct.column_names.insert(index, name)
+        for r in self.rows:
+            r.content.insert(index, Cell())
+        self.cols[name] = [r.col(name) for r in self.rows]
+
+    def _drop_col(self, name:str):
+        i = self.struct.col(name)
+        for r in self.rows:
+            r._fill()
+            r.content.pop(i)
+        self.struct.columns.pop(i)
+        self.struct.column_names.pop(i)
+        self.cols.pop(name)
+
+    def _set_col_type(self, name:str, type:Type):
+        self.struct.columns[self.struct.col(name)] = type
+
+    def _insert_row(self, index:int, values:dict):
+        r = Row(self.struct)
+        for name, value in values.items():
+            r.col(name).value = value
+        self.rows.insert(index, r)
+        for name in self.struct.column_names:
+            self.cols[name].insert(index, r.col(name))
+
+    def _drop_row(self, index:int):
+        self.rows.pop(index)
+        for cells in self.cols.values():
+            cells.pop(index)
+
+    def _set_cell(self, row:int, col:str, value):
+        self.rows[row].col(col).value = value
 
     def column(self, name: str | int):
         """Yield cells in a column
@@ -110,12 +207,6 @@ class Table():
         out.append(rule("└", "┴", "┘"))
         return "\n".join(out)
 
-    def __init__(self, t:list[Row] | None = None):
-        self.rows = [] if t is None else t
-        self.struct = RowStruct() if len(self.rows) == 0 else self.rows[0].struct
-        # Each column list holds the same Cell objects as the rows, so edits are visible both ways
-        self.cols = {name: [r.col(name) for r in self.rows] for name in self.struct.column_names}
-
     def select(self, var, col_name=None):
         """Select rows by value
         Args:
@@ -139,9 +230,8 @@ class Table():
         Args:
             **args: column names and types
         """
-        self.struct.add(**args)
-        for name in args:
-            self.cols[name] = [r.col(name) for r in self.rows]
+        n = len(self.struct)
+        self._commit([AddCol(name, t, n + k) for k, (name, t) in enumerate(args.items())])
 
     def editByName(self, col, where, change):
         """Edit cells by column name and value. Will edit multiple cells if they fit the condition.
@@ -150,25 +240,19 @@ class Table():
             where: value to match
             change: new value
         """
-        for cell in self.column(col):
-            if cell.value == where:
-                cell.value = change
+        self._commit([SetCell(i, col, change) for i, cell in enumerate(self.column(col)) if cell.value == where])
 
     def add(self, **args):
-        """Add columns with keyword args as name=type
+        """Add a row with keyword args as column=value. Unknown columns are ignored.
         Args:
-            **args: column names and types
+            **args: column names and values
         Returns:
             None
         Example:
-            `table.add(address=str, object=object)`
+            `table.add(name="John Doe", address="123 Place St.")`
         """
-        r = Row(self.struct)
-        for item in args.items():
-            r.append(item[0], item[1])
-        self.rows.append(r)
-        for name in self.struct.column_names:
-            self.cols[name].append(r.col(name))
+        names = self.struct.column_names
+        self._commit([AddRow(len(self.rows), {k: v for k, v in args.items() if k in names})])
 
 if __name__ == "__main__":
     t = Table()
