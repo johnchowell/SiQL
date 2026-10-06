@@ -1,4 +1,4 @@
-"""Demo: python -m SiQL (run from the folder containing the SiQL package)."""
+"""Demo: python -m SiQL"""
 from .models import Table
 
 if __name__ == "__main__":

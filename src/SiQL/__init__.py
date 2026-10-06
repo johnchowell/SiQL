@@ -1,3 +1,5 @@
+__version__ = "0.1.0"
+
 from .models import Table, Row, RowStruct, Cell, TableDiff
 from .controllers import Command
 from .managers import table_file

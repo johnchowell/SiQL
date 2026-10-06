@@ -1,7 +1,7 @@
 """Tests for the package layout and the core (non-file) behavior of models, managers, controllers and helpers.
 
 File saving and crash recovery are covered in test_persistence.py.
-Run from the repository root with: python -m unittest discover -s tests -t .. -v
+Run from the repository root with: python -m unittest discover -s src/SiQL/tests -t src -v
 """
 import importlib
 import os

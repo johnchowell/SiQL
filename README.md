@@ -4,9 +4,15 @@
 ### *A Python API for local tables and data access/searching much like [SQLite](https://sqlite.org/)*
 This Python library is intended to make data access and usage simpler with single calls and query chains
 
+## Installation
+Requires Python 3.11+.
+```
+pip install SiQL
+```
+
 ## Project layout
 ```
-SiQL/
+src/SiQL/
 ├── __init__.py          # public API: Table, Row, RowStruct, Cell, TableDiff, Command, table_file, ErrorHandler
 ├── __main__.py          # demo: python -m SiQL
 ├── models/              # data structures
@@ -26,8 +32,19 @@ SiQL/
 ```
 
 ## Running
-SiQL is a package, so run commands from the folder that **contains** `SiQL/`, or from inside `SiQL/` as shown:
 ```
-python -m SiQL                                      # demo (from the parent folder)
-python -m unittest discover -s tests -t .. -v       # tests (from inside SiQL/)
+python -m SiQL                                          # demo (after installing)
+pip install -e .                                        # editable install for development
+python -m unittest discover -s src/SiQL/tests -t src -v # tests (from the repository root)
 ```
+
+## Releasing
+```
+pip install build twine
+python -m build             # creates dist/*.tar.gz and dist/*.whl
+twine check dist/*
+twine upload dist/*
+```
+
+## License
+[MIT](https://github.com/johnchowell/SiQL/blob/master/LICENSE)

@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "SiQL"
+dynamic = ["version"]
+description = "A Python API for local tables and data access/searching, much like SQLite"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "johnchowell" }]
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["table", "query", "database", "local storage"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/johnchowell/SiQL"
+Source = "https://github.com/johnchowell/SiQL"
+Issues = "https://github.com/johnchowell/SiQL/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "SiQL.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["SiQL.tests", "SiQL.tests.*"]
