@@ -317,6 +317,32 @@ class Table():
             return [p - bisect.bisect_left(self._deleted, p) for p in found]
         return found
 
+    def find_batch(self, col_name, values, *, order="tree", chained=True):
+        """Exact lookup for each input, scheduling nearby queries and reusing tree search paths.
+
+        Return one list of row indices per input, in the original input order. 'tree' uses
+        the index's actual key order; 'input' skips sorting.
+        With the tree disabled this uses independent exact scans.
+        """
+        if order not in ("tree", "input"):
+            raise ValueError("order must be 'tree' or 'input'")
+        if isinstance(col_name, int):
+            col_name = self.struct.column_names[col_name]
+        values = list(values)
+        if self.index is None:
+            cells = self.cols[col_name]
+            return [scan(cells, EQ, value, True) for value in values]
+        matches = self.index[col_name].find_batch(values, order=order, chained=chained)
+        if not any(matches):
+            return [[] for _ in values]
+        if self._positions is None:
+            self._positions = {id(row): i for i, row in enumerate(self.rows)}
+            self._deleted.clear()
+        result = [sorted(self._positions[id(row)] for row in rows) for rows in matches]
+        if self._deleted:
+            return [[p - bisect.bisect_left(self._deleted, p) for p in found] for found in result]
+        return result
+
     def addCols(self, **args):
         """Add new columns
         Args:

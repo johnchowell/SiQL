@@ -1,0 +1,3 @@
+include setup.py
+recursive-include src/siql *.py *.c
+prune src/siql/tests

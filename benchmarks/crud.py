@@ -15,6 +15,8 @@ import string
 import sys
 import tempfile
 import time
+from datetime import datetime, timezone
+from importlib.machinery import ExtensionFileLoader
 from pathlib import Path
 
 try:
@@ -175,6 +177,8 @@ plt.rcParams.update({
 
 
 def _fmt(v: float, unit: str) -> str:
+    if unit == "ratio":
+        return f"{v:.2f}×"
     if unit == "x":
         return f"{v:.1f}×"
     if unit == "MB":
@@ -191,6 +195,9 @@ def _save(fig, ax, path: Path, title: str, y_label: str):
     ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=min(len(handles), 5), fontsize=9)
     fig.tight_layout()
     fig.savefig(path, facecolor="white")
+    # Matplotlib puts trailing spaces in SVG paths; keep generated artifacts clean in Git.
+    path.write_text("\n".join(line.rstrip() for line in path.read_text(encoding="utf-8").splitlines()) + "\n",
+                    encoding="utf-8", newline="\n")
     plt.close(fig)
 
 
@@ -273,6 +280,9 @@ def main():
 
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {"siql": __version__, "c_speedups": SPEEDUPS, "sqlite": sqlite3.sqlite_version,
+            "implementation": "native C++ (Cython)" if isinstance(sys.modules["siql.models.table"].__loader__,
+                                                                  ExtensionFileLoader) else "Python",
+            "measured_at": datetime.now(timezone.utc).isoformat(),
             "sqlite_settings": "autocommit, synchronous=OFF", "python": platform.python_version(),
             "os": f"{platform.system()} {platform.release()}", "machine": platform.processor() or platform.machine(),
             "lookups": lookups, "repeats": repeats, "unit": "microseconds per op (median of repeats)",

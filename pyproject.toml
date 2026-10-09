@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "Cython>=3.2,<4"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,7 +18,8 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: C",
+    "Programming Language :: C++",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -48,14 +49,5 @@ version = { attr = "siql.__version__" }
 where = ["src"]
 exclude = ["siql.tests", "siql.tests.*"]
 
-# C versions of the search functions. Optional: without a C compiler, siql installs without them and uses the
-# Python versions in siql/helpers/search.py
-[[tool.setuptools.ext-modules]]
-name = "siql._speedups"
-sources = ["src/siql/_speedups.c"]
-py-limited-api = true
-optional = true
-
-# Built against the stable ABI, so one wheel per platform works on Python 3.11 and later
-[tool.distutils.bdist_wheel]
-py-limited-api = "cp311"
+# setup.py builds every implementation module as a C++ extension, plus the C search engine.
+# Wheels target the compiling CPython version and platform.

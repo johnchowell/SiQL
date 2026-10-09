@@ -160,6 +160,79 @@ static PyObject *SkipList_get(PyObject *op, PyObject *key)
     return PySet_New(NULL);
 }
 
+/* A batch-local finger: ascend only far enough to span the next target, then descend.
+ * Decreasing targets start at the head. No node pointers survive the method call. */
+static int finger_path(SkipList *self, PyObject *key, Node **path)
+{
+    int top = 0;
+    for (; top < self->height - 1; top++) {
+        Node *next = path[top]->next[top];
+        if (next == NULL) break;
+        int less = PyObject_RichCompareBool(next->key, key, Py_LT);
+        if (less < 0) return -1;
+        if (!less) break;
+        /* Sparse queries can span most of a branch: use the saved express lanes
+         * directly rather than paying for a full ascent followed by descent. */
+        if (top == 2) { top = self->height - 1; break; }
+    }
+    Node *node = path[top];
+    for (int lane = top; lane >= 0; lane--) {
+        Node *saved = path[lane];
+        if (node != saved && saved != self->head) {
+            int ahead = node == self->head ? 1 : PyObject_RichCompareBool(node->key, saved->key, Py_LT);
+            if (ahead < 0) return -1;
+            if (ahead) node = saved;
+        }
+        Node *next = node->next[lane];
+        while (next != NULL) {
+            int less = PyObject_RichCompareBool(next->key, key, Py_LT);
+            if (less < 0) return -1;
+            if (!less) break;
+            node = next;
+            next = node->next[lane];
+        }
+        path[lane] = node;
+    }
+    return 0;
+}
+
+static PyObject *SkipList_get_many(PyObject *op, PyObject *args, PyObject *kwargs)
+{
+    SkipList *self = (SkipList *)op;
+    PyObject *input;
+    int chained = 1;
+    static char *names[] = {"keys", "chained", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|p:get_many", names, &input, &chained)) return NULL;
+    PyObject *keys = PySequence_List(input);
+    if (keys == NULL) return NULL;
+    Py_ssize_t count = PyList_Size(keys);
+    PyObject *out = PyList_New(count);
+    if (out == NULL) { Py_DECREF(keys); return NULL; }
+    Node *path[MAX_HEIGHT];
+    for (int lane = 0; lane < MAX_HEIGHT; lane++) path[lane] = self->head;
+    for (Py_ssize_t i = 0; i < count; i++) {
+        PyObject *key = PyList_GetItem(keys, i);
+        int forward = 0;
+        if (chained && i) {
+            int backward = PyObject_RichCompareBool(key, PyList_GetItem(keys, i - 1), Py_LT);
+            if (backward < 0) goto error;
+            forward = !backward;
+        }
+        if ((forward ? finger_path(self, key, path) : find_path(self, key, path)) < 0) goto error;
+        Node *node = node_at(path, key);
+        if (PyErr_Occurred()) goto error;
+        PyObject *ids = node != NULL ? Py_NewRef(node->ids) : PySet_New(NULL);
+        if (ids == NULL) goto error;
+        if (PyList_SetItem(out, i, ids) < 0) goto error;
+    }
+    Py_DECREF(keys);
+    return out;
+error:
+    Py_DECREF(keys);
+    Py_DECREF(out);
+    return NULL;
+}
+
 static PyObject *SkipList_insert(PyObject *op, PyObject *args)
 {
     SkipList *self = (SkipList *)op;
@@ -292,6 +365,8 @@ static PyObject *SkipList_height(PyObject *op, void *closure)
 
 static PyMethodDef SkipList_methods[] = {
     {"get", SkipList_get, METH_O, "Ids of the cells holding a value equal to `key` (an empty set if none)."},
+    {"get_many", (PyCFunction)SkipList_get_many, METH_VARARGS | METH_KEYWORDS,
+     "get_many(keys, chained=True): exact lookups with a batch-local search finger."},
     {"insert", SkipList_insert, METH_VARARGS, "insert(key, cell_id)"},
     {"remove", SkipList_remove, METH_VARARGS, "remove(key, cell_id); raises KeyError if it isn't there."},
     {"lane_keys", SkipList_lane_keys, METH_O, "Keys in one lane, in order."},

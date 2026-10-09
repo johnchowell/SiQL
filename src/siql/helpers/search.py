@@ -83,6 +83,39 @@ class PySkipList():
             node.next[lane] = path[lane].next[lane]
             path[lane].next[lane] = node
 
+    def get_many(self, keys, chained=True):
+        """Exact lookups with the same batch-local finger as the native implementation."""
+        path = [self.head] * self.MAX_HEIGHT
+        previous = None
+        out = []
+        for i, key in enumerate(keys):
+            if not chained or i == 0 or key < previous:
+                path = self._path(key)
+            else:
+                top = 0
+                while top < self.height - 1:
+                    nxt = path[top].next[top]
+                    if nxt is None or not nxt.key < key:
+                        break
+                    if top == 2:
+                        top = self.height - 1
+                        break
+                    top += 1
+                node = path[top]
+                for lane in range(top, -1, -1):
+                    saved = path[lane]
+                    if saved is not self.head and node is not saved:
+                        if node is self.head or node.key < saved.key:
+                            node = saved
+                    nxt = node.next[lane]
+                    while nxt is not None and nxt.key < key:
+                        node, nxt = nxt, nxt.next[lane]
+                    path[lane] = node
+            node = path[0].next[0]
+            out.append(node.ids if node is not None and node.key == key else set())
+            previous = key
+        return out
+
     def remove(self, key, cell_id: int):
         """Raises KeyError if the cell isn't filed under `key`."""
         path = self._path(key)

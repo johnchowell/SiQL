@@ -1,6 +1,7 @@
 import os
 import tomllib
 from dataclasses import dataclass, fields
+from typing import get_type_hints
 
 DEFAULT_PORT = 8642
 TOKEN_ENV = "SIQL_TOKEN"
@@ -31,7 +32,8 @@ class ServerConfig():
         """Read the `[server]` table of a TOML file. A relative `data_dir` is resolved from the file's folder."""
         with open(path, "rb") as f:
             settings = tomllib.load(f).get("server", {})
-        types = {f.name: (int if f.type is int else str) for f in fields(cls)}
+        hints = get_type_hints(cls)
+        types = {f.name: (int if hints[f.name] is int else str) for f in fields(cls)}
         for key, value in settings.items():
             if key not in types:
                 raise ValueError(f"Unknown setting in {path}: {key}")

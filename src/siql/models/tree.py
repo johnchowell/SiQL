@@ -170,3 +170,36 @@ class ColumnTree():
         if None in self.branches:
             rows += [row for row, _ in self.branches[None].matching(value)]
         return rows
+
+    def find_batch(self, values, *, order="tree", chained=True):
+        """Batch-local fingers per ordered branch; restore input order after scheduling queries."""
+        if order not in ("tree", "input"):
+            raise ValueError("order must be 'tree' or 'input'")
+        values = list(values)
+        out = [None] * len(values)
+        groups = {}
+        for i, value in enumerate(values):
+            key = tree_key(value)
+            if key is None:
+                out[i] = self.find(value)
+            else:
+                groups.setdefault(key, []).append(i)
+        for branch_key, indices in groups.items():
+            self._live([branch_key, None], purge_only=True)
+            if order == "tree":
+                indices.sort(key=lambda i: order_key(values[i]))
+            branch = self.branches.get(branch_key)
+            # Sorting a few sparse queries is useful for grouping, but a fresh seek can
+            # cost less than finger maintenance across large gaps. Keep the cheap route.
+            reuse = chained
+            if order == "tree" and branch is not None:
+                reuse = chained and len(indices) >= 8 and len(indices) * 64 >= len(branch)
+            matches = (branch.lanes.get_many([order_key(values[i]) for i in indices], chained=reuse)
+                       if branch is not None else [set() for _ in indices])
+            unkeyed = self.branches.get(None)
+            for i, cell_ids in zip(indices, matches):
+                rows = [branch[cell_id][0] for cell_id in cell_ids] if branch is not None else []
+                if unkeyed is not None:
+                    rows.extend(row for row, _ in unkeyed.matching(values[i]))
+                out[i] = rows
+        return out
