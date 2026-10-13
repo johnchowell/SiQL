@@ -46,13 +46,17 @@ class PySkipList():
             node = node.next[lane]
         return keys
 
-    def _path(self, key) -> list[_Node]:
+    def _path(self, key, trace=None) -> list[_Node]:
         """The last node before `key` in each lane."""
         path = [self.head] * self.MAX_HEIGHT
         node = self.head
         for lane in range(self.height - 1, -1, -1):
             nxt = node.next[lane]
-            while nxt is not None and nxt.key < key:
+            while nxt is not None:
+                if trace is not None:
+                    trace[nxt.key] = nxt.ids
+                if not nxt.key < key:
+                    break
                 node, nxt = nxt, nxt.next[lane]
             path[lane] = node
         return path
@@ -66,6 +70,12 @@ class PySkipList():
                 node, nxt = nxt, nxt.next[lane]
         node = node.next[0]
         return node.ids if node is not None and node.key == key else set()
+
+    def get_with_trace(self, key):
+        trace = {}
+        path = self._path(key, trace)
+        node = path[0].next[0]
+        return (node.ids if node is not None and node.key == key else set()), trace
 
     def insert(self, key, cell_id: int):
         path = self._path(key)
@@ -83,18 +93,21 @@ class PySkipList():
             node.next[lane] = path[lane].next[lane]
             path[lane].next[lane] = node
 
-    def get_many(self, keys, chained=True):
+    def get_many(self, keys, chained=True, trace=False):
         """Exact lookups with the same batch-local finger as the native implementation."""
         path = [self.head] * self.MAX_HEIGHT
         previous = None
         out = []
+        visited = {} if trace else None
         for i, key in enumerate(keys):
             if not chained or i == 0 or key < previous:
-                path = self._path(key)
+                path = self._path(key, visited)
             else:
                 top = 0
                 while top < self.height - 1:
                     nxt = path[top].next[top]
+                    if visited is not None and nxt is not None:
+                        visited[nxt.key] = nxt.ids
                     if nxt is None or not nxt.key < key:
                         break
                     if top == 2:
@@ -108,13 +121,17 @@ class PySkipList():
                         if node is self.head or node.key < saved.key:
                             node = saved
                     nxt = node.next[lane]
-                    while nxt is not None and nxt.key < key:
+                    while nxt is not None:
+                        if visited is not None:
+                            visited[nxt.key] = nxt.ids
+                        if not nxt.key < key:
+                            break
                         node, nxt = nxt, nxt.next[lane]
                     path[lane] = node
             node = path[0].next[0]
             out.append(node.ids if node is not None and node.key == key else set())
             previous = key
-        return out
+        return (out, visited) if trace else out
 
     def remove(self, key, cell_id: int):
         """Raises KeyError if the cell isn't filed under `key`."""

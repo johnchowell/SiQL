@@ -1,0 +1,2597 @@
+{
+  "meta": {
+    "python": "3.12.8",
+    "os": "Windows-11-10.0.26300-SP0",
+    "measured_at": "2026-10-13T20:00:31.020972+00:00",
+    "queries": 1000,
+    "repeats": 9,
+    "timing": "same live tree; cache empty before each mode; includes admission and result conversion",
+    "nodes": "every unique compared node, including stopping successors; no skipped ranges expanded",
+    "budget": "one shared 100000000-byte LRU; results and inspected-node values compete"
+  },
+  "results": {
+    "1000": {
+      "Random distinct": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 1.248,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 2.1018000000000003,
+            "retained_bytes": 335500,
+            "entries": 500,
+            "hits": 0,
+            "hit_rate": 0.0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 4.0604000000000005,
+            "retained_bytes": 558943,
+            "entries": 833,
+            "hits": 262,
+            "hit_rate": 0.524,
+            "nodes_seen": 3474,
+            "node_admissions": 833
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.528,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2468,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2548,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2644000000000002,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.215,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1884000000000001,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2072,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.31,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.248,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 2.1582,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.0761999999999996,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1948000000000003,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.0936,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.0968,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.0744000000000002,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1288,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1252,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1018000000000003,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 7.14,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 4.0604000000000005,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 4.139600000000001,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 4.4472,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 4.0098,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 3.93,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 4.1453999999999995,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 3.9138,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            },
+            {
+              "latency_us": 3.9122,
+              "retained_bytes": 558943,
+              "entries": 833,
+              "hits": 262,
+              "hit_rate": 0.524,
+              "nodes_seen": 3474,
+              "node_admissions": 833
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      },
+      "Nearby distinct": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 1.226,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 2.1838,
+            "retained_bytes": 335500,
+            "entries": 500,
+            "hits": 0,
+            "hit_rate": 0.0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 5.360600000000001,
+            "retained_bytes": 351604,
+            "entries": 524,
+            "hits": 115,
+            "hit_rate": 0.23,
+            "nodes_seen": 5847,
+            "node_admissions": 524
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.1605999999999999,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.407,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1747999999999998,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.226,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1598,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.143,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2355999999999998,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2375999999999998,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.2374,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 2.0791999999999997,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.0326,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.3935999999999997,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1414,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.215,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.2266,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.158,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1838,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.0312,
+              "retained_bytes": 335500,
+              "entries": 500,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 5.038,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 6.0972,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.035,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.5744,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.5798000000000005,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.292800000000001,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.2426,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.8486,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            },
+            {
+              "latency_us": 5.360600000000001,
+              "retained_bytes": 351604,
+              "entries": 524,
+              "hits": 115,
+              "hit_rate": 0.23,
+              "nodes_seen": 5847,
+              "node_admissions": 524
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      },
+      "Repeated names": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 1.159,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 0.663,
+            "retained_bytes": 21472,
+            "entries": 32,
+            "hits": 468,
+            "hit_rate": 0.936,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 1.0992,
+            "retained_bytes": 132187,
+            "entries": 197,
+            "hits": 470,
+            "hit_rate": 0.94,
+            "nodes_seen": 411,
+            "node_admissions": 197
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.209,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.748,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1436,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.159,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.208,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1245999999999998,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1324,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1116,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1672,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 0.7106,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6766,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.663,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6434,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6447999999999999,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.7094,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6376000000000001,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6964,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.659,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 468,
+              "hit_rate": 0.936,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 1.153,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.9338,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.1276,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.072,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.0922,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.1354000000000002,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.0537999999999998,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.0497999999999998,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            },
+            {
+              "latency_us": 1.0992,
+              "retained_bytes": 132187,
+              "entries": 197,
+              "hits": 470,
+              "hit_rate": 0.94,
+              "nodes_seen": 411,
+              "node_admissions": 197
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      }
+    },
+    "10000": {
+      "Random distinct": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 2.3699,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 3.2910999999999997,
+            "retained_bytes": 671000,
+            "entries": 1000,
+            "hits": 0,
+            "hit_rate": 0.0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 11.0266,
+            "retained_bytes": 3025539,
+            "entries": 4509,
+            "hits": 254,
+            "hit_rate": 0.254,
+            "nodes_seen": 15825,
+            "node_admissions": 4509
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 2.3809,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.3821,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.0428,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.4583000000000004,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.8268,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.7399,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.7272,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.4385,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.3699,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 3.3358000000000003,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.2392,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.304,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.5361,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.1278,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.8651,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.9440999999999997,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.4763,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.2910999999999997,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 16.2444,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 20.5518,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 10.8591,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 12.1975,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 11.0266,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 10.2105,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 11.5285,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 10.6379,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            },
+            {
+              "latency_us": 10.2465,
+              "retained_bytes": 3025539,
+              "entries": 4509,
+              "hits": 254,
+              "hit_rate": 0.254,
+              "nodes_seen": 15825,
+              "node_admissions": 4509
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      },
+      "Nearby distinct": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 1.5744,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 2.501,
+            "retained_bytes": 671000,
+            "entries": 1000,
+            "hits": 0,
+            "hit_rate": 0.0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 7.446899999999999,
+            "retained_bytes": 686433,
+            "entries": 1023,
+            "hits": 193,
+            "hit_rate": 0.193,
+            "nodes_seen": 19356,
+            "node_admissions": 1023
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.5101,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5744,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.4436,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.7834,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.734,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.4724000000000002,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5883,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.6525999999999998,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5043,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 2.4425,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.54,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.3886,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.8,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.8599,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 8.1784,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.501,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.452,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.4714,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 7.369,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.88,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.446899999999999,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 9.2621,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.5123,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.1799,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.3243,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.5861,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            },
+            {
+              "latency_us": 7.2553,
+              "retained_bytes": 686433,
+              "entries": 1023,
+              "hits": 193,
+              "hit_rate": 0.193,
+              "nodes_seen": 19356,
+              "node_admissions": 1023
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      },
+      "Repeated names": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 1.5015,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 0.646,
+            "retained_bytes": 21472,
+            "entries": 32,
+            "hits": 968,
+            "hit_rate": 0.968,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 1.2438,
+            "retained_bytes": 344223,
+            "entries": 513,
+            "hits": 968,
+            "hit_rate": 0.968,
+            "nodes_seen": 770,
+            "node_admissions": 513
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.5994000000000002,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5015,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.4694,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5382,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.4459000000000002,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.6232,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5318,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.4742,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.4745,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 0.6511,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6362000000000001,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6347999999999999,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6457,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.646,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.8067000000000001,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.6347999999999999,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.725,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.7299,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 1.4636,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.1853,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.1834,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.2438,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.3049000000000002,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.227,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.9445,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.2762,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            },
+            {
+              "latency_us": 1.2098,
+              "retained_bytes": 344223,
+              "entries": 513,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 770,
+              "node_admissions": 513
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      }
+    },
+    "100000": {
+      "Random distinct": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 5.7569,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 6.788,
+            "retained_bytes": 671000,
+            "entries": 1000,
+            "hits": 0,
+            "hit_rate": 0.0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 32.027,
+            "retained_bytes": 6917339,
+            "entries": 10309,
+            "hits": 56,
+            "hit_rate": 0.056,
+            "nodes_seen": 27111,
+            "node_admissions": 10309
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 56.7885,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 7.6525,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 12.6341,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 11.979,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 4.8325,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 4.6516,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 4.3689,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 5.7569,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 4.8915,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 6.788,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 7.427,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 6.5975,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 15.2739,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 7.944,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 5.297,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 6.2716,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 7.3573,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 6.769399999999999,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 27.7011,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 28.1041,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 61.964400000000005,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 63.0387,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 39.2194,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 26.0523,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 81.7093,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 30.7422,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            },
+            {
+              "latency_us": 32.027,
+              "retained_bytes": 6917339,
+              "entries": 10309,
+              "hits": 56,
+              "hit_rate": 0.056,
+              "nodes_seen": 27111,
+              "node_admissions": 10309
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      },
+      "Nearby distinct": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 1.8186,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 3.1424000000000003,
+            "retained_bytes": 671000,
+            "entries": 1000,
+            "hits": 0,
+            "hit_rate": 0.0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 8.654399999999999,
+            "retained_bytes": 684420,
+            "entries": 1020,
+            "hits": 205,
+            "hit_rate": 0.205,
+            "nodes_seen": 20833,
+            "node_admissions": 1020
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.8186,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.1416999999999997,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.5615,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.618,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.589,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.9392,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.7654,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.3527,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.8517000000000001,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 2.8008,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.5058000000000002,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.7331,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.8636999999999997,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.9413,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.8294,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.1424000000000003,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.8291,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 4.0121,
+              "retained_bytes": 671000,
+              "entries": 1000,
+              "hits": 0,
+              "hit_rate": 0.0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 8.654399999999999,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 8.205200000000001,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 8.094899999999999,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 7.8777,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 8.6492,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 9.228200000000001,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 13.001700000000001,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 14.117299999999998,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            },
+            {
+              "latency_us": 14.941,
+              "retained_bytes": 684420,
+              "entries": 1020,
+              "hits": 205,
+              "hit_rate": 0.205,
+              "nodes_seen": 20833,
+              "node_admissions": 1020
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      },
+      "Repeated names": {
+        "modes": {
+          "Tree only": {
+            "latency_us": 2.4928000000000003,
+            "retained_bytes": 0,
+            "entries": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "Results only": {
+            "latency_us": 0.8493999999999999,
+            "retained_bytes": 21472,
+            "entries": 32,
+            "hits": 968,
+            "hit_rate": 0.968,
+            "nodes_seen": 0,
+            "node_admissions": 0
+          },
+          "All inspected nodes": {
+            "latency_us": 2.1113000000000004,
+            "retained_bytes": 398574,
+            "entries": 594,
+            "hits": 968,
+            "hit_rate": 0.968,
+            "nodes_seen": 854,
+            "node_admissions": 594
+          }
+        },
+        "runs": {
+          "Tree only": [
+            {
+              "latency_us": 1.9683,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 4.7604,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.422,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.738,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.8874000000000002,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.8048,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 2.4928000000000003,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.7998000000000003,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 3.8735999999999997,
+              "retained_bytes": 0,
+              "entries": 0,
+              "hits": 0,
+              "hit_rate": 0,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "Results only": [
+            {
+              "latency_us": 0.7177,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.0098,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.8065,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.1981,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.8493999999999999,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.781,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 0.7477999999999999,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.469,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            },
+            {
+              "latency_us": 1.7287000000000001,
+              "retained_bytes": 21472,
+              "entries": 32,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 0,
+              "node_admissions": 0
+            }
+          ],
+          "All inspected nodes": [
+            {
+              "latency_us": 1.8102,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 3.0936,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 1.7588,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 1.9606,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 2.1113000000000004,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 1.763,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 2.2392,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 2.5585999999999998,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            },
+            {
+              "latency_us": 3.6256,
+              "retained_bytes": 398574,
+              "entries": 594,
+              "hits": 968,
+              "hit_rate": 0.968,
+              "nodes_seen": 854,
+              "node_admissions": 594
+            }
+          ]
+        },
+        "exact_agreement": 1.0
+      }
+    }
+  },
+  "stress": {
+    "steps": 10000,
+    "query_comparisons": 30000,
+    "mismatches": 0,
+    "operations": {
+      "read": 6984,
+      "edit": 1028,
+      "append": 1011,
+      "delete": 977,
+      "resize": 73,
+      "rename": 10
+    },
+    "rows_remaining": 10034,
+    "elapsed_seconds": 3.3066967999984627,
+    "maximum_accounted_bytes": 125280,
+    "final_cache_info": {
+      "max_bytes": 10000,
+      "bytes": 9576,
+      "entries": 12,
+      "hits": 11874,
+      "misses": 13194,
+      "evictions": 64875,
+      "invalidations": 55425,
+      "cache_traversed_nodes": true,
+      "traversal_nodes_seen": 123367,
+      "traversal_admissions": 110868
+    },
+    "reload_agreement": true,
+    "persisted_operations_timed_for_stress_only": true
+  }
+}

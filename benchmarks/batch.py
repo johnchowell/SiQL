@@ -49,7 +49,7 @@ def run(size, query_count, repeats, batch_sizes, batches_per_pass):
     rng = random.Random(43)
     names = [''.join(rng.choices(string.ascii_letters, k=8)) for _ in range(size)]
     with tempfile.TemporaryDirectory() as directory:
-        table = Table(file=str(Path(directory) / 'rows.siql'))
+        table = Table(file=str(Path(directory) / 'rows.siql'), cache_max_bytes=0)
         table.addCols(name=str, n=int)
         TableDiff([AddRow(i, {'name': name, 'n': i}) for i, name in enumerate(names)]).apply(table)
         table.find('name', names[0])  # Build the shared position map outside the timed region.

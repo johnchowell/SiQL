@@ -7,6 +7,8 @@ from typing import Type, Self
 from .row import RowStruct, Cell, Row
 from .diff import TableDiff, DiffOp, AddCol, AddRow, SetCell, commit_line
 from .tree import ColumnTree
+from .cache import QueryCache, DEFAULT_CACHE_BYTES
+from .prefix import CompressedIndex
 from ..helpers.format import box
 from ..helpers.search import scan, EQ
 
@@ -24,7 +26,9 @@ class Table():
     def entries(self) -> list[Row]:
         return self.rows
 
-    def __init__(self, t:list[Row] | None = None, *, file=None, tree:bool = True, lazy_delete:bool = False):
+    def __init__(self, t:list[Row] | None = None, *, file=None, tree:bool = True, lazy_delete:bool = False,
+                 cache_max_bytes:int = DEFAULT_CACHE_BYTES, cache_traversed_nodes:bool = False,
+                 compressed_search:bool = False, lazy_add:bool = False):
         """
         Args:
             t: initial rows (only allowed when the file is new or empty)
@@ -33,12 +37,20 @@ class Table():
             lazy_delete: with the tree on, queue the tree cleanup for deleted rows instead of doing it at once.
                 `rows`, `cols` and the file are still updated immediately; searches unlink queued rows as
                 they pass them, and `purge()` finishes the queue.
+            cache_max_bytes: rolling exact-result cache budget per table; defaults to 100 MB. Zero disables it.
+            cache_traversed_nodes: also admit values inspected during skip-list traversal to that same cache.
+            compressed_search: group hidden all-column prefix signatures for multi-column exact lookup; opt-in.
+            lazy_add: defer new cells' tree insertion until their branches are searched; rows and saving remain immediate.
         """
         self.rows = []
         self.struct = RowStruct()
         self.cols = {}
         self.index = None
+        self._compressed_enabled = False
+        self._compressed_index = None
+        self._query_cache = QueryCache(cache_max_bytes, traversed_nodes=cache_traversed_nodes)
         self.lazy_delete = lazy_delete
+        self.lazy_add = lazy_add
         self._positions = None  # id(row) -> position when the map was built, used by `find`
         self._deleted = []  # sorted map positions of rows deleted since then (the lazy delete queue)
         self._file = (file if file is not None else f"{uuid.uuid4().hex}.siql")
@@ -59,6 +71,76 @@ class Table():
             self._buffer.write(commit_line(initial))
         self.save()
         self.tree = tree
+        self.compressed_search = compressed_search
+
+    @property
+    def lazy_add(self):
+        return self._lazy_add
+
+    @lazy_add.setter
+    def lazy_add(self, enabled):
+        if type(enabled) is not bool:
+            raise ValueError("lazy_add must be a boolean")
+        if not enabled:
+            for node in (self.index or {}).values():
+                node.flush_pending()
+        self._lazy_add = enabled
+
+    @property
+    def compressed_search(self):
+        return self._compressed_enabled
+
+    @compressed_search.setter
+    def compressed_search(self, enabled):
+        if type(enabled) is not bool:
+            raise ValueError("compressed_search must be a boolean")
+        self._compressed_enabled = enabled
+        if not enabled and self._compressed_index is not None:
+            self._compressed_index.close()
+            self._compressed_index = None
+        if enabled and self.index is not None and self._compressed_index is None:
+            self._compressed_index = CompressedIndex(self)
+        for node in (self.index or {}).values():
+            node._on_change = self._compressed_cell_changed if enabled else None
+
+    @property
+    def compressed_info(self):
+        if self._compressed_index is None:
+            return {'enabled': self._compressed_enabled, 'active': False}
+        return dict(self._compressed_index.info, enabled=True, active=True)
+
+    def _compressed_cell_changed(self, row, cell):
+        if self._compressed_index is not None:
+            self._compressed_index.changed(row)
+
+    def _compressed_schema_changed(self):
+        if self._compressed_index is not None:
+            self._compressed_index.schema_dirty = True
+
+    @property
+    def cache_traversed_nodes(self):
+        return self._query_cache.traversed_nodes
+
+    @cache_traversed_nodes.setter
+    def cache_traversed_nodes(self, enabled):
+        self._query_cache.traversed_nodes = enabled
+
+    @property
+    def cache_max_bytes(self):
+        return self._query_cache.max_bytes
+
+    @cache_max_bytes.setter
+    def cache_max_bytes(self, limit):
+        self._query_cache.max_bytes = limit
+
+    @property
+    def cache_info(self):
+        """Snapshot of retained cache bytes, entries, hits, misses, and evictions."""
+        return self._query_cache.info
+
+    def clear_cache(self):
+        """Release cached query results; the table and its index remain intact."""
+        self._query_cache.clear()
 
     @property
     def tree(self) -> bool:
@@ -71,7 +153,13 @@ class Table():
             self.index = {}
             for name in self.struct.column_names:
                 self._index_column(name)
+            if self._compressed_enabled:
+                self._compressed_index = CompressedIndex(self)
         elif not enabled and self.index is not None:
+            self.clear_cache()
+            if self._compressed_index is not None:
+                self._compressed_index.close()
+                self._compressed_index = None
             for node in self.index.values():
                 node.sweep()
             for cells in self.cols.values():
@@ -80,7 +168,7 @@ class Table():
             self.index = None
 
     def purge(self):
-        """Finish all queued lazy deletes now."""
+        """Finish all queued lazy additions and deletes now."""
         for node in (self.index or {}).values():
             node.sweep()
         self._forget_positions()
@@ -90,11 +178,14 @@ class Table():
         self._deleted.clear()
 
     def _index_column(self, name:str):
-        node = self.index[name] = ColumnTree()
+        node = self.index[name] = ColumnTree(cache=self._query_cache,
+                                            on_change=self._compressed_cell_changed if self._compressed_enabled else None)
         for row, cell in zip(self.rows, self.cols[name]):
             node.add(row, cell)
 
     def _row_added(self, row:Row, index:int):
+        if self._compressed_index is not None:
+            self._compressed_index.add(row)
         if self._positions is not None and index == len(self.rows) - 1:
             # Map positions run past the queued deletes, so an appended row goes after all of them
             self._positions[id(row)] = index + len(self._deleted)
@@ -102,9 +193,14 @@ class Table():
             self._forget_positions()  # rows after `index` shifted
         if self.index is not None:
             for name, node in self.index.items():
-                node.add(row, row.col(name))
+                if self.lazy_add:
+                    node.queue_add(row, row.col(name))
+                else:
+                    node.add(row, row.col(name))
 
     def _row_removed(self, row:Row, index:int):
+        if self._compressed_index is not None:
+            self._compressed_index.remove(row)
         if self._positions is None:
             pass
         elif self.lazy_delete and len(self._deleted) < len(self.rows) // 4 + 64:
@@ -187,6 +283,7 @@ class Table():
         for r in self.rows:
             r.content.insert(index, Cell())
         self.cols[name] = [r.col(name) for r in self.rows]
+        self._compressed_schema_changed()
         if self.index is not None:
             self._index_column(name)
         return lambda: self._drop_col(name)
@@ -199,8 +296,11 @@ class Table():
         self.struct.column_names.pop(i)
         removed = [r.content.pop(i) for r in self.rows]
         cells = self.cols.pop(name)
+        self._compressed_schema_changed()
         if self.index is not None:
-            self.index.pop(name).sweep()
+            node = self.index.pop(name)
+            node.clear_cache()
+            node.sweep()
             for cell in cells:
                 cell._tree = None
 
@@ -210,6 +310,7 @@ class Table():
             for r, c in zip(self.rows, removed):
                 r.content.insert(i, c)
             self.cols[name] = cells
+            self._compressed_schema_changed()
             if self.index is not None:
                 self._index_column(name)
         return undo
@@ -225,6 +326,7 @@ class Table():
         if new_name in self.cols:
             raise ValueError(f"Column already exists: {new_name}")
         self.struct.column_names[i] = new_name
+        self._compressed_schema_changed()
         self.cols = {(new_name if k == name else k): v for k, v in self.cols.items()}
         if self.index is not None:
             self.index[new_name] = self.index.pop(name)
@@ -350,6 +452,44 @@ class Table():
         """
         n = len(self.struct)
         self._commit([AddCol(name, t, n + k) for k, (name, t) in enumerate(args.items())])
+
+    def find_where(self, **criteria):
+        """Exact AND equality across columns, optionally prefiltered by the hidden row signature."""
+        for column in criteria:
+            if column not in self.cols:
+                raise KeyError(column)
+        if not criteria:
+            return list(range(len(self.rows)))
+        if len(criteria) == 1:
+            column, value = next(iter(criteria.items()))
+            return self.find(column, value)
+        if self._compressed_index is not None:
+            rows = self._compressed_index.find(criteria)
+            if self._positions is None:
+                self._positions = {id(row): i for i, row in enumerate(self.rows)}
+                self._deleted.clear()
+            positions = sorted(self._positions[id(row)] for row in rows)
+            if self._deleted:
+                positions = [p - bisect.bisect_left(self._deleted, p) for p in positions]
+            return positions
+        # Reuse the current tree for the first predicate, then its native exact scan on the narrowed rows.
+        items = list(criteria.items())
+        if self.index is not None:
+            from .tree import tree_key
+            def estimate(item):
+                column, value = item
+                key = tree_key(value)
+                node = self.index[column]
+                return len(self.rows) if key is None else len(node.branches.get(key, ())) + len(node.branches.get(None, ()))
+            items.sort(key=estimate)
+        column, value = items[0]
+        positions = self.find(column, value)
+        for column, value in items[1:]:
+            cells = [self.rows[i].col(column) for i in positions]
+            positions = [positions[i] for i in scan(cells, EQ, value, True)]
+            if not positions:
+                break
+        return positions
 
     def editByName(self, col, where, change):
         """Edit cells by column name and value. Will edit multiple cells if they fit the condition.

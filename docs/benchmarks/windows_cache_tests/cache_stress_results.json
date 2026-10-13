@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "siql": "1.0.0",
+    "python": "3.12.8",
+    "sqlite": "3.45.3",
+    "os": "Windows-11-10.0.26300-SP0",
+    "measured_at": "2026-10-13T16:11:37.854307+00:00",
+    "timing": "median end-to-end us/query; includes result materialization; fixture and cache warmup excluded",
+    "sqlite_settings": "indexed covering equality lookup; default statement cache; cache_size=-97656",
+    "sqlite_file": "warm OS/SQLite pages; reads only; no cold-disk or durable-write speed claim",
+    "cache": "100000000 bytes; clear between runs; prewarm for repeated cases; cold trace has distinct keys",
+    "cache_info_note": "entry/byte counts are snapshots; hit/miss/eviction counters accumulate across modes and repeats",
+    "queries": 3000,
+    "repeats": 9,
+    "seed": 84,
+    "result": "row IDs, ascending; SiQL row positions equal IDs in immutable speed fixtures"
+  },
+  "mutations": {
+    "steps": 10000,
+    "query_comparisons": 30000,
+    "mismatches": 0,
+    "operations": {
+      "read": 6984,
+      "edit": 1028,
+      "append": 1011,
+      "delete": 977,
+      "resize": 73,
+      "rename": 10
+    },
+    "rows_remaining": 10034,
+    "elapsed_seconds": 3.320943399998214,
+    "maximum_accounted_bytes": 19160,
+    "final_cache_info": {
+      "max_bytes": 10000,
+      "bytes": 7112,
+      "entries": 9,
+      "hits": 11689,
+      "misses": 13379,
+      "evictions": 5395,
+      "invalidations": 11057
+    },
+    "reload_agreement": true,
+    "persisted_operations_timed_for_stress_only": true
+  },
+  "memory": {
+    "queries": 520000,
+    "elapsed_seconds": 12.59909890000199,
+    "snapshots": [
+      {
+        "stage": "fill 100 MB budget",
+        "queries": 220000,
+        "cache_info": {
+          "max_bytes": 100000000,
+          "bytes": 99999900,
+          "entries": 150150,
+          "hits": 0,
+          "misses": 220000,
+          "evictions": 69850,
+          "invalidations": 0
+        },
+        "traced_growth_bytes": 57491884,
+        "traced_peak_bytes": 60637684
+      },
+      {
+        "stage": "churn 1",
+        "queries": 100000,
+        "cache_info": {
+          "max_bytes": 100000000,
+          "bytes": 99999900,
+          "entries": 150150,
+          "hits": 0,
+          "misses": 320000,
+          "evictions": 169850,
+          "invalidations": 0
+        },
+        "traced_growth_bytes": 57492632,
+        "traced_peak_bytes": 60637684
+      },
+      {
+        "stage": "churn 2",
+        "queries": 100000,
+        "cache_info": {
+          "max_bytes": 100000000,
+          "bytes": 99999900,
+          "entries": 150150,
+          "hits": 0,
+          "misses": 420000,
+          "evictions": 269850,
+          "invalidations": 0
+        },
+        "traced_growth_bytes": 57493316,
+        "traced_peak_bytes": 67979268
+      },
+      {
+        "stage": "shrink to 1 MB",
+        "queries": 0,
+        "cache_info": {
+          "max_bytes": 1000000,
+          "bytes": 999666,
+          "entries": 1501,
+          "hits": 0,
+          "misses": 420000,
+          "evictions": 418499,
+          "invalidations": 0
+        },
+        "traced_growth_bytes": 585698,
+        "traced_peak_bytes": 67979268
+      },
+      {
+        "stage": "churn at 1 MB",
+        "queries": 100000,
+        "cache_info": {
+          "max_bytes": 1000000,
+          "bytes": 999984,
+          "entries": 1506,
+          "hits": 0,
+          "misses": 520000,
+          "evictions": 518494,
+          "invalidations": 0
+        },
+        "traced_growth_bytes": 690976,
+        "traced_peak_bytes": 67979268
+      },
+      {
+        "stage": "disable",
+        "queries": 0,
+        "cache_info": {
+          "max_bytes": 0,
+          "bytes": 0,
+          "entries": 0,
+          "hits": 0,
+          "misses": 520000,
+          "evictions": 520000,
+          "invalidations": 0
+        },
+        "traced_growth_bytes": 3724,
+        "traced_peak_bytes": 67979268
+      }
+    ],
+    "note": "tracemalloc Python allocations, not RSS; rows already resident are excluded; tracing affects timing"
+  }
+}

@@ -232,6 +232,22 @@ class Interpreter():
             inner = Interpreter._scan_where(table, e.item)
             return None if inner is None else set(everything) - inner
         if isinstance(e, (And, Or)):
+            if isinstance(e, And) and table.tree and table.compressed_search:
+                criteria = {}
+                for item in e.items:
+                    if not isinstance(item, Compare) or SCAN_OPS[item.op] != EQ:
+                        break
+                    if isinstance(item.left, Column) and isinstance(item.right, Literal):
+                        name, value = item.left.name, item.right.value
+                    elif isinstance(item.left, Literal) and isinstance(item.right, Column):
+                        name, value = item.right.name, item.left.value
+                    else:
+                        break
+                    if name in criteria:
+                        break  # Preserve repeated-column predicates through the normal AND path.
+                    criteria[name] = value
+                else:
+                    return set(table.find_where(**criteria))
             parts = [Interpreter._scan_where(table, item) for item in e.items]
             if any(p is None for p in parts):
                 return None

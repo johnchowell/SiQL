@@ -73,6 +73,219 @@ people.find("name", "Ann")                  # indices of matching rows
 people.tree = False                         # discard the tree (set True to rebuild it)
 ```
 
+#### Lazy additions (optional)
+`Table(lazy_add=True)` defers inserting new cells into the search tree's skip-list lanes. Rows,
+column lists, and the saved change log update immediately. Searches see new rows immediately:
+they first index pending additions in the branches they need, just as lazy delete cleans those
+branches before reading them. Unrelated branches and columns remain pending.
+
+```python
+people.lazy_add = True                     # also available in the Table constructor
+people.add(name="Dee", age=28)             # saved now; tree insertion can wait
+people.find("name", "Dee")                 # indexes the needed name branch, then searches
+print(len(people.index["age"].pending))     # cells still waiting in this column
+people.purge()                             # finish both lazy additions and lazy deletions
+people.lazy_add = False                    # finish pending additions and resume eager inserts
+```
+
+The option defaults to off and can be combined with `lazy_delete=True`. Pending cells still
+notify the index on direct edits; deleting an unindexed row cancels its pending insertion.
+Cached matches and misses are invalidated on insertion. Batch searches keep their normal chained
+traversal after indexing the needed branches. SQL scans already read the updated column lists.
+Compressed multi-column searches keep their prefix membership current independently.
+
+To bound the queue, a column indexes all its pending additions when their count exceeds the larger
+of 64 and its currently indexed live-cell count. `purge()` and disabling lazy add finish remaining
+work explicitly. Reload and schema/tree rebuilds build ordinary complete indexes. This shifts
+indexing cost from insertion to later searches or flushing; it does not defer saving or guarantee
+lower total work.
+
+#### Compressed column search (optional)
+`Table(compressed_search=True)` builds a hidden signature from every column: the first Unicode
+character of text, the first decimal digit of a number (ignoring its sign), or the first byte of
+binary values. Each prefix has an interned, typed symbol; a signature packs four bytes per column
+and is shared by rows with identical signatures. It groups rows before running the existing exact
+column trees within each matching group.
+
+```python
+people.compressed_search = True
+people.find("name", "Ann")                  # ordinary column tree and rolling cache
+people.find_where(name="Ann", age=31)       # intersect prefixes, then exact AND equality
+print(people.compressed_info)               # groups, signature bytes, candidate rows and trees
+people.compressed_search = False            # release the extra index
+```
+
+Single-column searches use the ordinary tree even with `compressed_search=True`. This includes
+`find`, single-criterion `find_where`, and SQL equality lookups. `find_batch` retains its chained
+tree traversal and rolling cache. Grouping applies when a search constrains at least two columns.
+Partial multi-column queries visit every compatible full-signature group. Prefix collisions cannot produce
+final matches without exact equality. Empty values and NULL have distinct symbols; unsupported
+values use wildcard groups to preserve custom equality. Numeric equality such as `1 == 1.0`
+uses the same prefix. Direct edits, insertions, deletions, rollback, and schema changes refresh
+group membership before the next grouped search. In-place binary edits are also checked. Signatures
+are in memory only, outside the visible schema and saved file, and rebuilt on reload.
+
+With this option enabled, SQL `AND` expressions containing only equality comparisons on distinct
+columns also use the grouped path. Other predicates retain their existing evaluation.
+`tree=False` suspends the extra index.
+
+This mode defaults to off. Native Windows measurements at 100,000 rows show the benefit depends
+on how many columns constrain a query (lower is better). The single-column grouped numbers below
+come from the prototype; the public API now uses the ordinary tree for that case:
+
+| Exact predicates | Tree + narrowed scan (µs/query) | Groups, first pass | Groups, warm trees |
+|---|---:|---:|---:|
+| One column | 176.19 | 1,465.69 | 781.63 |
+| Two columns | 402.53 | 692.72 | 146.51 |
+| All three columns | 319.28 | 507.23 | 56.78 |
+
+Warm three-column queries were 5.6× faster and narrowed the candidate set to about 28 rows on
+average. Warm single-column queries were 4.4× slower because they visited about 159 groups.
+At 1,000 and 10,000 rows, all measured grouped workloads were slower. Group trees are built lazily;
+the first-pass column includes that cost. Workloads run sequentially, so later first passes may
+reuse trees created by earlier workloads. Initial group formation is timed separately in the raw
+results. The extra index and group trees use additional memory outside the rolling cache budget;
+only their cached query results share that budget.
+
+![Prefix grouping versus the existing search tree](docs/benchmarks/compressed_search.svg)
+
+Measured on 2026-10-13 with native Python 3.12.8 on Windows, 300 queries per workload, nine repeats,
+and result caching disabled to isolate the index. Every result agreed with the ordinary search.
+The fixture has three columns: 512 names, integer ages 0–99, and two-byte binary values.
+[Raw measurements](docs/benchmarks/compressed_search_results.json) include all three table sizes,
+candidate counts, and formation times. The benchmark deliberately forces the prototype's grouped
+path for the single-column comparison. Run `python benchmarks/compressed_search.py` to reproduce;
+`--quick` shortens the run and `--replot` redraws the graph.
+
+#### Rolling query-result cache
+Each table has a least-recently-used cache for indexed exact lookups, with a default budget of
+100 MB (100,000,000 bytes). It fills on demand; the limit is not preallocated. `find`, `find_batch`,
+`select`, and indexed SQL equality/`IN` lookups share it. The oldest unused results are evicted as
+new results fill the byte budget, and every hit refreshes its recency.
+
+```python
+people = Table(file="people.siql", cache_max_bytes=100_000_000)
+people.find("name", "Ann")                 # tree lookup, then retained in the cache
+people.find("name", "Ann")                 # cached rows, resolved through the current position map
+people.cache_max_bytes = 25_000_000         # resize at runtime; shrink evicts immediately
+print(people.cache_info)                    # bytes, entries, hits, misses, evictions, invalidations
+people.clear_cache()                       # release results while keeping the tree
+people.cache_max_bytes = 0                  # disable caching
+```
+
+Entries retain references to the table's live rows. They do not duplicate row values or retain old
+row positions; results keep the same ordering and return fresh lists. Edits invalidate results for
+the affected column, including direct cell assignments. Inserts, deletes, column removal, and
+rollback also keep the cache coherent. Changing an unrelated column preserves the useful cached
+rows, and subsequent reads see that column's current values. Cached misses are invalidated too.
+
+The budget conservatively accounts for query keys, row-reference tuples, and per-entry bookkeeping.
+It limits retained cache storage, rather than total process memory or the table's existing rows.
+Oversized entries are skipped without evicting useful smaller results. Shrinking also compacts the
+backing maps to release their old capacity. Cache state is in memory only and is empty after reload.
+
+Only immutable builtin query values with stable equality are cached. Columns containing mutable
+values, custom objects/subclasses, or NaN bypass caching so in-place edits and custom equality remain
+correct. `tree=False`, range predicates, and other scan-based SQL predicates use the ordinary search
+path. Set a table's `cache_max_bytes` after opening it through `Database` to change its budget.
+
+#### Caching values encountered during traversal
+`Table(cache_traversed_nodes=True)` also admits the exact-value results of every unique node
+inspected during an indexed search, including successors that stop a lane's scan. Later queries for
+those values can hit the existing cache even when they were not previous query destinations.
+The native and reference skip lists support this for individual and batch lookups.
+
+```python
+people.cache_traversed_nodes = True
+people.find("name", "Ann")
+print(people.cache_info["traversal_nodes_seen"])
+print(people.cache_info["traversal_admissions"])
+```
+
+The nodes are already resident in the tree; this mode adds shortcuts to their exact-value results.
+It keeps live row references and uses the same rolling byte budget and mutation invalidation as
+ordinary cached results. Inspected values and requested results compete in one LRU; requested values
+are touched last. Express-lane jumps retain their normal behavior. The cache records compared nodes
+without expanding the ranges they skip, and it retains no raw native node pointers.
+
+This mode is off by default because the measured admission cost outweighed its additional hits.
+At 100,000 rows on native Windows, starting each run with an empty cache:
+
+| Workload | Results only (µs/query) | Inspected nodes (µs/query) | Inspected-node hit rate |
+|---|---:|---:|---:|
+| Random distinct values | 6.79 | 32.03 | 5.6% |
+| Nearby distinct values | 3.14 | 8.65 | 20.5% |
+| Repeated names | 0.85 | 2.11 | 96.8% |
+
+The random-distinct case retained 6.92 MB and 10,309 entries, compared with 0.67 MB and 1,000
+entries for result-only caching. Increased coverage did not make this workload faster. The separate
+10,000-operation mutation stress passed all 30,000 SQLite comparisons, runtime resizes, and reload.
+Turn off new traversal admissions with `cache_traversed_nodes=False`; `clear_cache()` removes entries
+already admitted when comparing modes.
+
+![Result-only versus inspected-node caching](docs/benchmarks/traversal_cache.svg)
+
+Measured on 2026-10-13 using Python 3.12.8 on Windows, nine repeats, and the same live tree for each
+mode. Queries include admission and result conversion; repeated-name timings here include filling
+the initial cache. Per-run timings and stress results are in
+[traversal_cache_results.json](docs/benchmarks/traversal_cache_results.json). Reproduce with
+`python benchmarks/traversal_cache.py`; `--quick` shortens the run and `--replot` redraws the graph.
+
+#### Cache speed and stress against SQLite
+The cache and tree were compared with indexed SQLite on 1,000, 10,000, 50,000, and 100,000 rows.
+Each workload used up to 3,000 queries and nine repeats; timings include returning all row IDs.
+Repeated-name queries use 32 names; fan-out queries use 16 categories. Distinct queries begin with
+an empty SiQL result cache. SQLite's statement cache, index, and data pages are warm in all cases.
+Query plans confirm covering index searches. Fixtures, initial loading, and prewarming are excluded.
+
+Native Windows results at 100,000 rows (µs/query; lower is better):
+
+| Workload | SiQL tree, cache off | SiQL cache | SQLite in memory | SQLite file, warm |
+|---|---:|---:|---:|---:|
+| Repeated names, one row | 2.88 | 1.31 | 2.57 | 42.90 |
+| Distinct names, one row | 11.06 | 17.00 | 5.35 | 58.39 |
+| Repeated categories, about 391 rows | 328.29 | 119.26 | 230.36 | 263.39 |
+
+Cached repeat lookups are about 2× faster than in-memory SQLite here. Distinct lookups favor SQLite;
+cache insertion adds overhead without a repeat hit. The file-backed measurements include SQLite's
+normal file/locking work and use warm pages; they do not measure cold-disk reads or durable writes.
+SiQL keeps its table rows resident. These results compare indexed lookup, rather than general SQL
+performance or total database memory use.
+
+![Cached repeat lookup against SQLite on Windows](docs/benchmarks/windows_cache_tests/cache_sqlite_hot.svg)
+![Distinct-key lookup against SQLite on Windows](docs/benchmarks/windows_cache_tests/cache_sqlite_cold.svg)
+![Rolling cache under memory pressure on Windows](docs/benchmarks/windows_cache_tests/cache_stress_memory.svg)
+
+Stress passed on both Windows and WSL: 10,000 mixed operations per platform, each followed by three
+comparisons against SQLite, with zero mismatches. The workload includes edits, appends, lazy deletes,
+73 runtime resizes, and ten column renames; reloading the final compacted table also matched SQLite.
+Each platform additionally ran 520,000 distinct cache-pressure queries. Windows retained about
+100 MB of accounted cache storage with 57.5 MB of traced allocation growth, stable across two churn
+cycles. Shrinking to 1 MB reduced traced growth to 0.59 MB; disabling released all cache entries.
+Traced memory measures Python allocations, not process RSS or the already resident table.
+
+The full CRUD suite was also rerun with the result cache disabled. At 50,000 rows on WSL, indexed
+SQLite took 25.4 µs/create, 28.0 µs/update, and 25.2 µs/delete. SiQL's plain tree took 40.3, 38.2,
+and 4,290.5 µs respectively; lazy deletion reduced SiQL deletes to 46.5 µs. SQLite uses autocommit
+with `synchronous=OFF` in this CRUD suite, so these write timings are not a durability comparison.
+The batch suite, also with caching disabled, measured tree-ordered speed-ups of 1.16× for random
+names, 1.70× for nearby numbers, and 2.40× for repeated names at 50,000 rows.
+
+Measured on 2026-10-13 on an Intel Core Ultra 7 165U. Windows uses Python 3.12.8 / SQLite 3.45.3;
+WSL uses Python 3.14.4 / SQLite 3.46.1. In the WSL 100,000-row repeat-name workload, SiQL cache,
+in-memory SQLite, and file-backed SQLite measured 0.78, 1.70, and 6.75 µs/query respectively.
+Raw [Windows lookup results](docs/benchmarks/windows_cache_tests/cache_sqlite_results.json),
+[Windows stress results](docs/benchmarks/windows_cache_tests/cache_stress_results.json),
+[WSL lookup results](docs/benchmarks/cache_sqlite_results.json),
+[WSL stress results](docs/benchmarks/cache_stress_results.json),
+[current CRUD results](docs/benchmarks/current_crud/results.json), and
+[current batch results](docs/benchmarks/current_batch/batch_results.json) include individual repeats.
+
+Reproduce with `python benchmarks/cache_sqlite.py`; `--quick` runs a shorter check. Use `--no-plots`
+without Matplotlib, `--output DIRECTORY` for separate platform results, and `--replot` to redraw saved
+graphs. The existing `python benchmarks/crud.py` and `python benchmarks/batch.py` reproduce the
+broader suites. Timing differences depend on workload, platform, and run-to-run noise.
+
 #### Chained batch tree searches
 `find_batch` searches exact values through the existing tree. It groups queries by branch, orders nearby
 tree keys together, and keeps a temporary skip-list search finger for that batch. Nearby forward queries
@@ -122,7 +335,8 @@ Tables have random eight-letter names and sequential numbers. Nearby queries are
 contiguous numbers within one branch; repeated queries sample eight names. Timings are medians of
 nine timed passes, each containing twenty calls to the warm batch, including ordering and restoring
 result order. Repeating each batch within a timing pass reduces overhead and short-timer noise.
-These measurements use a different workload and warm-up procedure from the earlier single-query
+The batch benchmark disables the result cache to measure traversal improvements. These measurements
+use a different workload and warm-up procedure from the earlier single-query
 graphs. Raw timings and batch sizes 8, 32, 128, and 512 are in
 [batch_results.json](docs/benchmarks/batch_results.json). Reproduce with `python benchmarks/batch.py`;
 `--quick` runs a shorter comparison and `--replot` redraws the graphs. Results depend on workload
@@ -358,6 +572,11 @@ benchmarks/crud.py           # CRUD timings with the tree on and off; writes doc
 ```
 
 ## Development
+The HTTP server uses a thread per request, with a lock serializing table access. The library's
+`Table` is not thread-safe; callers sharing a table across threads must protect operations with
+their own lock. Native search functions retain the Python GIL, and batch searches run sequentially,
+so this build does not provide parallel CPU search execution.
+
 The package itself has no dependencies. Development tools are in `[dependency-groups]` in `pyproject.toml`
 (`dev`: build, twine and matplotlib; `bench`: matplotlib only) and need pip 25.1 or newer:
 ```

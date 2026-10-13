@@ -73,7 +73,7 @@ static int random_height(SkipList *self)
 }
 
 /* path[lane] = the last node before `key` in each lane. Returns -1 if a comparison raised. */
-static int find_path(SkipList *self, PyObject *key, Node **path)
+static int find_path(SkipList *self, PyObject *key, Node **path, PyObject *trace)
 {
     Node *node = self->head;
     for (int lane = MAX_HEIGHT - 1; lane >= self->height; lane--) {
@@ -82,6 +82,7 @@ static int find_path(SkipList *self, PyObject *key, Node **path)
     for (int lane = self->height - 1; lane >= 0; lane--) {
         Node *next = node->next[lane];
         while (next != NULL) {
+            if (trace != NULL && PyDict_SetItem(trace, next->key, next->ids) < 0) return -1;
             int less = PyObject_RichCompareBool(next->key, key, Py_LT);
             if (less < 0) {
                 return -1;
@@ -147,7 +148,7 @@ static PyObject *SkipList_get(PyObject *op, PyObject *key)
 {
     SkipList *self = (SkipList *)op;
     Node *path[MAX_HEIGHT];
-    if (find_path(self, key, path) < 0) {
+    if (find_path(self, key, path, NULL) < 0) {
         return NULL;
     }
     Node *node = node_at(path, key);
@@ -162,12 +163,13 @@ static PyObject *SkipList_get(PyObject *op, PyObject *key)
 
 /* A batch-local finger: ascend only far enough to span the next target, then descend.
  * Decreasing targets start at the head. No node pointers survive the method call. */
-static int finger_path(SkipList *self, PyObject *key, Node **path)
+static int finger_path(SkipList *self, PyObject *key, Node **path, PyObject *trace)
 {
     int top = 0;
     for (; top < self->height - 1; top++) {
         Node *next = path[top]->next[top];
         if (next == NULL) break;
+        if (trace != NULL && PyDict_SetItem(trace, next->key, next->ids) < 0) return -1;
         int less = PyObject_RichCompareBool(next->key, key, Py_LT);
         if (less < 0) return -1;
         if (!less) break;
@@ -185,6 +187,7 @@ static int finger_path(SkipList *self, PyObject *key, Node **path)
         }
         Node *next = node->next[lane];
         while (next != NULL) {
+            if (trace != NULL && PyDict_SetItem(trace, next->key, next->ids) < 0) return -1;
             int less = PyObject_RichCompareBool(next->key, key, Py_LT);
             if (less < 0) return -1;
             if (!less) break;
@@ -200,14 +203,16 @@ static PyObject *SkipList_get_many(PyObject *op, PyObject *args, PyObject *kwarg
 {
     SkipList *self = (SkipList *)op;
     PyObject *input;
-    int chained = 1;
-    static char *names[] = {"keys", "chained", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|p:get_many", names, &input, &chained)) return NULL;
+    int chained = 1, tracing = 0;
+    static char *names[] = {"keys", "chained", "trace", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|pp:get_many", names, &input, &chained, &tracing)) return NULL;
     PyObject *keys = PySequence_List(input);
     if (keys == NULL) return NULL;
     Py_ssize_t count = PyList_Size(keys);
     PyObject *out = PyList_New(count);
     if (out == NULL) { Py_DECREF(keys); return NULL; }
+    PyObject *trace = tracing ? PyDict_New() : NULL;
+    if (tracing && trace == NULL) { Py_DECREF(keys); Py_DECREF(out); return NULL; }
     Node *path[MAX_HEIGHT];
     for (int lane = 0; lane < MAX_HEIGHT; lane++) path[lane] = self->head;
     for (Py_ssize_t i = 0; i < count; i++) {
@@ -218,7 +223,7 @@ static PyObject *SkipList_get_many(PyObject *op, PyObject *args, PyObject *kwarg
             if (backward < 0) goto error;
             forward = !backward;
         }
-        if ((forward ? finger_path(self, key, path) : find_path(self, key, path)) < 0) goto error;
+        if ((forward ? finger_path(self, key, path, trace) : find_path(self, key, path, trace)) < 0) goto error;
         Node *node = node_at(path, key);
         if (PyErr_Occurred()) goto error;
         PyObject *ids = node != NULL ? Py_NewRef(node->ids) : PySet_New(NULL);
@@ -226,11 +231,35 @@ static PyObject *SkipList_get_many(PyObject *op, PyObject *args, PyObject *kwarg
         if (PyList_SetItem(out, i, ids) < 0) goto error;
     }
     Py_DECREF(keys);
+    if (tracing) {
+        PyObject *result = PyTuple_Pack(2, out, trace);
+        Py_DECREF(out);
+        Py_DECREF(trace);
+        return result;
+    }
     return out;
 error:
     Py_DECREF(keys);
     Py_DECREF(out);
+    Py_XDECREF(trace);
     return NULL;
+}
+
+static PyObject *SkipList_get_with_trace(PyObject *op, PyObject *key)
+{
+    SkipList *self = (SkipList *)op;
+    PyObject *trace = PyDict_New();
+    if (trace == NULL) return NULL;
+    Node *path[MAX_HEIGHT];
+    if (find_path(self, key, path, trace) < 0) { Py_DECREF(trace); return NULL; }
+    Node *node = node_at(path, key);
+    if (PyErr_Occurred()) { Py_DECREF(trace); return NULL; }
+    PyObject *ids = node != NULL ? Py_NewRef(node->ids) : PySet_New(NULL);
+    if (ids == NULL) { Py_DECREF(trace); return NULL; }
+    PyObject *result = PyTuple_Pack(2, ids, trace);
+    Py_DECREF(ids);
+    Py_DECREF(trace);
+    return result;
 }
 
 static PyObject *SkipList_insert(PyObject *op, PyObject *args)
@@ -241,7 +270,7 @@ static PyObject *SkipList_insert(PyObject *op, PyObject *args)
         return NULL;
     }
     Node *path[MAX_HEIGHT];
-    if (find_path(self, key, path) < 0) {
+    if (find_path(self, key, path, NULL) < 0) {
         return NULL;
     }
     Node *node = node_at(path, key);
@@ -282,7 +311,7 @@ static PyObject *SkipList_remove(PyObject *op, PyObject *args)
         return NULL;
     }
     Node *path[MAX_HEIGHT];
-    if (find_path(self, key, path) < 0) {
+    if (find_path(self, key, path, NULL) < 0) {
         return NULL;
     }
     Node *node = node_at(path, key);
@@ -365,8 +394,9 @@ static PyObject *SkipList_height(PyObject *op, void *closure)
 
 static PyMethodDef SkipList_methods[] = {
     {"get", SkipList_get, METH_O, "Ids of the cells holding a value equal to `key` (an empty set if none)."},
+    {"get_with_trace", SkipList_get_with_trace, METH_O, "Return IDs and all inspected hashable keys, with their IDs."},
     {"get_many", (PyCFunction)SkipList_get_many, METH_VARARGS | METH_KEYWORDS,
-     "get_many(keys, chained=True): exact lookups with a batch-local search finger."},
+     "get_many(keys, chained=True, trace=False): exact lookups and optional inspected-node trace."},
     {"insert", SkipList_insert, METH_VARARGS, "insert(key, cell_id)"},
     {"remove", SkipList_remove, METH_VARARGS, "remove(key, cell_id); raises KeyError if it isn't there."},
     {"lane_keys", SkipList_lane_keys, METH_O, "Keys in one lane, in order."},

@@ -54,7 +54,7 @@ def run(size: int, options: dict, lookups: int, seed: int = 1) -> tuple[dict[str
     rng = random.Random(seed)
     names = ["".join(rng.choices(string.ascii_letters, k=8)) for _ in range(size)]
     probes = rng.sample(range(size), lookups)
-    t = Table(file="t.siql", **options)
+    t = Table(file="t.siql", **({"cache_max_bytes": 0} | options))
     t.addCols(name=str, n=int)
     us = {}
 
@@ -124,7 +124,7 @@ def run_pending(size: int, options: dict, lookups: int, deletes: int, seed: int 
     batch first (untimed), except "again", which repeats the previous lookups."""
     rng = random.Random(seed)
     names = ["".join(rng.choices(string.ascii_letters, k=8)) for _ in range(size)]
-    t = Table(**options)
+    t = Table(**({"cache_max_bytes": 0} | options))
     t.addCols(name=str, n=int)
     TableDiff([AddRow(i, {"name": x, "n": i}) for i, x in enumerate(names)]).apply(t)
     t.find("n", 0)  # build the position map, as any earlier lookup would have
@@ -203,8 +203,8 @@ def _save(fig, ax, path: Path, title: str, y_label: str):
 
 def bar_chart(path: Path, title: str, categories: list[str], series: list[tuple[str, list[float]]],
               y_label: str, unit: str = "us", log: bool = False, ref: float | None = None,
-              colors: list[str] | None = None):
-    fig, ax = plt.subplots(figsize=(10, 4.5) if len(series) > 3 else (8, 4))
+              colors: list[str] | None = None, figsize: tuple | None = None):
+    fig, ax = plt.subplots(figsize=figsize or ((10, 4.5) if len(series) > 3 else (8, 4)))
     width = 0.8 / len(series)
     for s, (label, values) in enumerate(series):
         xs = [c + (s - (len(series) - 1) / 2) * width for c in range(len(categories))]

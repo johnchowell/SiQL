@@ -1,0 +1,357 @@
+{
+  "meta": {
+    "python": "3.12.8",
+    "os": "Windows-11-10.0.26300-SP0",
+    "measured_at": "2026-10-13T20:57:12.256745+00:00",
+    "queries": 300,
+    "repeats": 9,
+    "prefixes": "first Unicode character; first decimal digit; first byte",
+    "signatures": "interned little-endian uint32 symbol per column, shared within each group",
+    "cache_max_bytes": 0,
+    "seed": 88,
+    "baseline": "first predicate by coarse tree selectivity; existing exact scan for remaining predicates",
+    "timing": "fixtures and group formation excluded; first pass includes lazy group-tree creation",
+    "first_pass_note": "workloads run sequentially; later first passes may reuse trees built by earlier workloads"
+  },
+  "results": {
+    "1000": {
+      "workloads": {
+        "One column": {
+          "baseline": {
+            "latency_us": 1.8170000000000002,
+            "runs_us": [
+              1.607,
+              2.130333333333333,
+              1.834,
+              1.644,
+              1.6613333333333333,
+              1.8906666666666667,
+              1.6253333333333335,
+              3.693666666666666,
+              1.8170000000000002
+            ]
+          },
+          "compressed_warm_us": 29.839666666666666,
+          "compressed_runs_us": [
+            29.527,
+            31.43433333333333,
+            29.725,
+            28.660666666666668,
+            30.747666666666664,
+            29.839666666666666,
+            32.67666666666667,
+            31.539,
+            29.234
+          ],
+          "compressed_first_pass_us": 44.431,
+          "candidate_rows_mean": 39.62,
+          "candidate_groups_mean": 34.38333333333333,
+          "exact_agreement": 1.0
+        },
+        "Two columns": {
+          "baseline": {
+            "latency_us": 3.4876666666666667,
+            "runs_us": [
+              3.477,
+              3.473333333333333,
+              3.439,
+              3.515333333333333,
+              3.5773333333333337,
+              3.4876666666666667,
+              3.466666666666667,
+              3.5569999999999995,
+              3.546666666666667
+            ]
+          },
+          "compressed_warm_us": 10.474666666666668,
+          "compressed_runs_us": [
+            12.888,
+            11.673333333333334,
+            10.516666666666667,
+            10.474666666666668,
+            10.393,
+            13.025333333333332,
+            10.399,
+            9.864666666666666,
+            9.918000000000001
+          ],
+          "compressed_first_pass_us": 15.979666666666665,
+          "candidate_rows_mean": 5.266666666666667,
+          "candidate_groups_mean": 4.433333333333334,
+          "exact_agreement": 1.0
+        },
+        "All three columns": {
+          "baseline": {
+            "latency_us": 4.357333333333333,
+            "runs_us": [
+              4.357333333333333,
+              10.189333333333334,
+              5.801333333333334,
+              4.5343333333333335,
+              4.881333333333334,
+              4.210333333333333,
+              4.059666666666667,
+              4.324666666666667,
+              4.202
+            ]
+          },
+          "compressed_warm_us": 9.596,
+          "compressed_runs_us": [
+            9.866000000000001,
+            9.559666666666667,
+            9.526,
+            9.405,
+            9.695,
+            9.966666666666667,
+            10.355666666666666,
+            9.504333333333333,
+            9.596
+          ],
+          "compressed_first_pass_us": 13.397,
+          "candidate_rows_mean": 1.3133333333333332,
+          "candidate_groups_mean": 1,
+          "exact_agreement": 1.0
+        }
+      },
+      "group_build_ms": 2.050000002782326,
+      "index_info": {
+        "rows": 1000,
+        "groups": 870,
+        "symbols": 52,
+        "row_signature_width": 12,
+        "interned_signature_bytes": 10440,
+        "group_column_trees": 1473,
+        "last_candidate_groups": 1,
+        "last_candidate_rows": 1,
+        "enabled": true,
+        "active": true
+      }
+    },
+    "10000": {
+      "workloads": {
+        "One column": {
+          "baseline": {
+            "latency_us": 4.931,
+            "runs_us": [
+              5.844333333333333,
+              5.501333333333334,
+              6.556666666666667,
+              5.189,
+              4.931,
+              4.799666666666667,
+              4.627,
+              4.64,
+              4.622333333333334
+            ]
+          },
+          "compressed_warm_us": 147.999,
+          "compressed_runs_us": [
+            150.05966666666666,
+            147.75633333333334,
+            139.027,
+            140.89533333333333,
+            143.24533333333332,
+            157.50733333333332,
+            147.999,
+            164.54666666666665,
+            154.04933333333335
+          ],
+          "compressed_first_pass_us": 228.7586666666667,
+          "candidate_rows_mean": 384.28,
+          "candidate_groups_mean": 137.11666666666667,
+          "exact_agreement": 1.0
+        },
+        "Two columns": {
+          "baseline": {
+            "latency_us": 10.653666666666666,
+            "runs_us": [
+              11.230666666666666,
+              12.791333333333334,
+              11.663666666666666,
+              10.41,
+              9.949666666666667,
+              10.653666666666666,
+              11.340333333333334,
+              9.828666666666667,
+              10.256
+            ]
+          },
+          "compressed_warm_us": 44.288333333333334,
+          "compressed_runs_us": [
+            45.016,
+            43.065333333333335,
+            43.503,
+            44.11366666666667,
+            46.13066666666667,
+            45.25266666666666,
+            42.535,
+            44.288333333333334,
+            45.173
+          ],
+          "compressed_first_pass_us": 67.34266666666666,
+          "candidate_rows_mean": 42.846666666666664,
+          "candidate_groups_mean": 14.82,
+          "exact_agreement": 1.0
+        },
+        "All three columns": {
+          "baseline": {
+            "latency_us": 11.690666666666665,
+            "runs_us": [
+              14.403666666666668,
+              14.835333333333335,
+              12.514,
+              11.037333333333333,
+              10.839666666666666,
+              14.355,
+              11.690666666666665,
+              11.003666666666666,
+              10.561333333333334
+            ]
+          },
+          "compressed_warm_us": 26.877666666666666,
+          "compressed_runs_us": [
+            26.044,
+            26.296333333333333,
+            25.023,
+            28.001666666666665,
+            27.288666666666668,
+            27.172666666666668,
+            25.717666666666666,
+            27.567,
+            26.877666666666666
+          ],
+          "compressed_first_pass_us": 40.41766666666666,
+          "candidate_rows_mean": 3.8333333333333335,
+          "candidate_groups_mean": 1,
+          "exact_agreement": 1.0
+        }
+      },
+      "group_build_ms": 17.93780000298284,
+      "index_info": {
+        "rows": 10000,
+        "groups": 3567,
+        "symbols": 52,
+        "row_signature_width": 12,
+        "interned_signature_bytes": 42804,
+        "group_column_trees": 4615,
+        "last_candidate_groups": 1,
+        "last_candidate_rows": 3,
+        "enabled": true,
+        "active": true
+      }
+    },
+    "100000": {
+      "workloads": {
+        "One column": {
+          "baseline": {
+            "latency_us": 176.19066666666666,
+            "runs_us": [
+              148.004,
+              176.19066666666666,
+              158.59533333333331,
+              189.13533333333334,
+              171.24633333333333,
+              222.67933333333335,
+              185.152,
+              183.682,
+              150.083
+            ]
+          },
+          "compressed_warm_us": 781.6316666666667,
+          "compressed_runs_us": [
+            864.49,
+            720.7453333333334,
+            822.8213333333333,
+            727.56,
+            908.9966666666667,
+            715.7,
+            816.7016666666667,
+            781.6316666666667,
+            696.6796666666667
+          ],
+          "compressed_first_pass_us": 1465.694,
+          "candidate_rows_mean": 3839.77,
+          "candidate_groups_mean": 158.74,
+          "exact_agreement": 1.0
+        },
+        "Two columns": {
+          "baseline": {
+            "latency_us": 402.5263333333333,
+            "runs_us": [
+              428.81399999999996,
+              348.172,
+              412.79466666666667,
+              396.1306666666667,
+              336.698,
+              402.5263333333333,
+              444.8913333333333,
+              451.24466666666666,
+              343.35200000000003
+            ]
+          },
+          "compressed_warm_us": 146.513,
+          "compressed_runs_us": [
+            136.418,
+            146.513,
+            155.682,
+            189.59333333333333,
+            145.5126666666667,
+            137.71733333333333,
+            131.647,
+            184.26600000000002,
+            203.50033333333332
+          ],
+          "compressed_first_pass_us": 692.717,
+          "candidate_rows_mean": 418.61,
+          "candidate_groups_mean": 15.983333333333333,
+          "exact_agreement": 1.0
+        },
+        "All three columns": {
+          "baseline": {
+            "latency_us": 319.2786666666667,
+            "runs_us": [
+              353.231,
+              311.951,
+              299.747,
+              293.144,
+              319.2786666666667,
+              350.02,
+              447.25533333333334,
+              328.71066666666667,
+              316.75733333333335
+            ]
+          },
+          "compressed_warm_us": 56.78,
+          "compressed_runs_us": [
+            57.91466666666667,
+            59.95966666666667,
+            53.81466666666667,
+            70.02766666666666,
+            56.78,
+            51.77733333333334,
+            47.16733333333334,
+            52.15633333333333,
+            60.05733333333333
+          ],
+          "compressed_first_pass_us": 507.23433333333327,
+          "candidate_rows_mean": 27.67,
+          "candidate_groups_mean": 1,
+          "exact_agreement": 1.0
+        }
+      },
+      "group_build_ms": 255.76229999569478,
+      "index_info": {
+        "rows": 100000,
+        "groups": 4128,
+        "symbols": 52,
+        "row_signature_width": 12,
+        "interned_signature_bytes": 49536,
+        "group_column_trees": 6674,
+        "last_candidate_groups": 1,
+        "last_candidate_rows": 36,
+        "enabled": true,
+        "active": true
+      }
+    }
+  }
+}
