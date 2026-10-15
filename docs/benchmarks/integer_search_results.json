@@ -1,0 +1,746 @@
+{
+  "meta": {
+    "python": "3.12.8",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "measured_at": "2026-10-14T15:44:20.106495+00:00",
+    "seed": 98,
+    "queries": 100,
+    "repeats": 5,
+    "cache_max_bytes": 0,
+    "encoding": "full canonical value bytes in length-prefixed padded slots",
+    "estimate": "row-weighted mean encoded slot minus one quarter observed range",
+    "timing": "formation and sorting excluded; warm passes follow one initial pass",
+    "note": "integer lower reuses the under index; both use identical direct index calls and row-position conversion"
+  },
+  "results": {
+    "1000": {
+      "workloads": {
+        "Tree": {
+          "Leading pair": {
+            "warm_us": 4.164,
+            "runs_us": [
+              4.285,
+              4.181,
+              4.138999999999999,
+              4.053,
+              4.164
+            ],
+            "first_pass_us": 4.541,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Hole in middle": {
+            "warm_us": 3.926,
+            "runs_us": [
+              3.9330000000000003,
+              3.926,
+              3.948,
+              3.9,
+              3.904
+            ],
+            "first_pass_us": 4.17,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Nonleading pair": {
+            "warm_us": 7.121,
+            "runs_us": [
+              7.501,
+              7.121,
+              7.109,
+              7.15,
+              7.067
+            ],
+            "first_pass_us": 8.435,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "All columns": {
+            "warm_us": 4.898,
+            "runs_us": [
+              5.02,
+              4.898,
+              4.8919999999999995,
+              4.888,
+              7.183
+            ],
+            "first_pass_us": 5.39,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          }
+        },
+        "Prefix groups": {
+          "Leading pair": {
+            "warm_us": 13.804,
+            "runs_us": [
+              14.163,
+              13.907,
+              13.707,
+              13.777000000000001,
+              13.804
+            ],
+            "first_pass_us": 31.618000000000002,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Hole in middle": {
+            "warm_us": 11.878,
+            "runs_us": [
+              11.537,
+              25.991,
+              12.929,
+              11.722000000000001,
+              11.878
+            ],
+            "first_pass_us": 20.844,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Nonleading pair": {
+            "warm_us": 19.272000000000002,
+            "runs_us": [
+              19.272000000000002,
+              18.854,
+              18.567,
+              31.545,
+              19.799
+            ],
+            "first_pass_us": 40.974,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "All columns": {
+            "warm_us": 12.106,
+            "runs_us": [
+              12.238,
+              12.353,
+              12.106,
+              12.087,
+              11.979000000000001
+            ],
+            "first_pass_us": 13.659,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          }
+        },
+        "Integer under": {
+          "Leading pair": {
+            "warm_us": 6.565,
+            "runs_us": [
+              7.434,
+              7.077999999999999,
+              6.474,
+              6.531000000000001,
+              6.565
+            ],
+            "first_pass_us": 9.679,
+            "mean_range_groups": 1.05,
+            "mean_backtracked_groups": 0.21
+          },
+          "Hole in middle": {
+            "warm_us": 6.662999999999999,
+            "runs_us": [
+              6.919,
+              6.662999999999999,
+              6.497999999999999,
+              6.7989999999999995,
+              6.567
+            ],
+            "first_pass_us": 7.417000000000001,
+            "mean_range_groups": 2.91,
+            "mean_backtracked_groups": 0.19
+          },
+          "Nonleading pair": {
+            "warm_us": 48.071999999999996,
+            "runs_us": [
+              60.1,
+              45.349,
+              48.071999999999996,
+              56.43899999999999,
+              45.777
+            ],
+            "first_pass_us": 47.324,
+            "mean_range_groups": 997.13,
+            "mean_backtracked_groups": 249.61
+          },
+          "All columns": {
+            "warm_us": 7.375,
+            "runs_us": [
+              7.5329999999999995,
+              7.535,
+              7.233,
+              7.375,
+              7.159
+            ],
+            "first_pass_us": 8.118,
+            "mean_range_groups": 1,
+            "mean_backtracked_groups": 0
+          }
+        },
+        "Integer lower": {
+          "Leading pair": {
+            "warm_us": 6.101,
+            "runs_us": [
+              6.223,
+              6.101,
+              6.006,
+              6.27,
+              6.087999999999999
+            ],
+            "first_pass_us": 6.428,
+            "mean_range_groups": 1.05,
+            "mean_backtracked_groups": 0
+          },
+          "Hole in middle": {
+            "warm_us": 6.52,
+            "runs_us": [
+              13.690999999999999,
+              8.078,
+              6.272,
+              6.486000000000001,
+              6.52
+            ],
+            "first_pass_us": 8.318999999999999,
+            "mean_range_groups": 2.91,
+            "mean_backtracked_groups": 0
+          },
+          "Nonleading pair": {
+            "warm_us": 47.888999999999996,
+            "runs_us": [
+              46.215,
+              57.968,
+              46.505,
+              48.348,
+              47.888999999999996
+            ],
+            "first_pass_us": 46.19,
+            "mean_range_groups": 997.13,
+            "mean_backtracked_groups": 0
+          },
+          "All columns": {
+            "warm_us": 8.879,
+            "runs_us": [
+              9.04,
+              10.856,
+              8.532,
+              7.697,
+              8.879
+            ],
+            "first_pass_us": 15.030999999999999,
+            "mean_range_groups": 1,
+            "mean_backtracked_groups": 0
+          }
+        }
+      },
+      "formation_ms": {
+        "Tree": 0.006600006599910557,
+        "Prefix groups": 3.117600004770793,
+        "Integer under": 6.2726000032853335,
+        "Integer lower": 0.0092999980552122
+      },
+      "integer_info": {
+        "rows": 1000,
+        "groups": 1000,
+        "symbols": 0,
+        "row_signature_width": 33,
+        "interned_signature_bytes": 32905,
+        "group_column_trees": 0,
+        "last_candidate_groups": 1,
+        "last_candidate_rows": 1,
+        "mode": "integer",
+        "integer_bits": 264,
+        "last_range_groups": 1,
+        "last_backtracked_groups": 0,
+        "last_seek_integer": 89757995470636609024494150475381938428447597222035044280658148689380355,
+        "enabled": true,
+        "active": true
+      }
+    },
+    "10000": {
+      "workloads": {
+        "Tree": {
+          "Leading pair": {
+            "warm_us": 17.051,
+            "runs_us": [
+              17.680999999999997,
+              17.084,
+              16.619,
+              16.535,
+              17.051
+            ],
+            "first_pass_us": 19.259,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Hole in middle": {
+            "warm_us": 18.937,
+            "runs_us": [
+              42.672,
+              37.15,
+              18.937,
+              16.387,
+              15.76
+            ],
+            "first_pass_us": 22.448,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Nonleading pair": {
+            "warm_us": 79.972,
+            "runs_us": [
+              74.218,
+              91.315,
+              79.972,
+              87.28299999999999,
+              68.422
+            ],
+            "first_pass_us": 109.791,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "All columns": {
+            "warm_us": 19.961,
+            "runs_us": [
+              25.998,
+              22.9,
+              19.219,
+              19.961,
+              18.423
+            ],
+            "first_pass_us": 26.359,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          }
+        },
+        "Prefix groups": {
+          "Leading pair": {
+            "warm_us": 57.11,
+            "runs_us": [
+              53.576,
+              59.123000000000005,
+              58.346000000000004,
+              52.353,
+              57.11
+            ],
+            "first_pass_us": 188.32299999999998,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Hole in middle": {
+            "warm_us": 36.503,
+            "runs_us": [
+              38.324,
+              45.251999999999995,
+              36.465,
+              35.321,
+              36.503
+            ],
+            "first_pass_us": 100.803,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Nonleading pair": {
+            "warm_us": 89.711,
+            "runs_us": [
+              106.204,
+              85.46700000000001,
+              91.736,
+              83.82,
+              89.711
+            ],
+            "first_pass_us": 307.117,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "All columns": {
+            "warm_us": 35.389,
+            "runs_us": [
+              35.556999999999995,
+              47.012,
+              35.389,
+              33.835,
+              32.624
+            ],
+            "first_pass_us": 37.668,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          }
+        },
+        "Integer under": {
+          "Leading pair": {
+            "warm_us": 8.829,
+            "runs_us": [
+              7.3229999999999995,
+              7.265,
+              10.605,
+              10.880999999999998,
+              8.829
+            ],
+            "first_pass_us": 10.124,
+            "mean_range_groups": 1.21,
+            "mean_backtracked_groups": 0.25
+          },
+          "Hole in middle": {
+            "warm_us": 8.63,
+            "runs_us": [
+              8.896,
+              8.39,
+              8.302,
+              8.747,
+              8.63
+            ],
+            "first_pass_us": 10.798,
+            "mean_range_groups": 21.81,
+            "mean_backtracked_groups": 2.14
+          },
+          "Nonleading pair": {
+            "warm_us": 444.986,
+            "runs_us": [
+              431.48400000000004,
+              444.986,
+              463.20300000000003,
+              451.964,
+              428.435
+            ],
+            "first_pass_us": 486.986,
+            "mean_range_groups": 9970.37,
+            "mean_backtracked_groups": 2426.07
+          },
+          "All columns": {
+            "warm_us": 9.533,
+            "runs_us": [
+              8.359,
+              7.806,
+              11.186,
+              16.155,
+              9.533
+            ],
+            "first_pass_us": 11.075999999999999,
+            "mean_range_groups": 1,
+            "mean_backtracked_groups": 0
+          }
+        },
+        "Integer lower": {
+          "Leading pair": {
+            "warm_us": 6.7139999999999995,
+            "runs_us": [
+              6.898,
+              6.928999999999999,
+              6.545,
+              6.7139999999999995,
+              6.5760000000000005
+            ],
+            "first_pass_us": 8.458,
+            "mean_range_groups": 1.21,
+            "mean_backtracked_groups": 0
+          },
+          "Hole in middle": {
+            "warm_us": 7.734,
+            "runs_us": [
+              7.848,
+              7.959,
+              7.544,
+              7.734,
+              7.647
+            ],
+            "first_pass_us": 9.911,
+            "mean_range_groups": 21.81,
+            "mean_backtracked_groups": 0
+          },
+          "Nonleading pair": {
+            "warm_us": 459.301,
+            "runs_us": [
+              459.301,
+              432.577,
+              459.55699999999996,
+              439.11300000000006,
+              496.32300000000004
+            ],
+            "first_pass_us": 441.45300000000003,
+            "mean_range_groups": 9970.37,
+            "mean_backtracked_groups": 0
+          },
+          "All columns": {
+            "warm_us": 7.437,
+            "runs_us": [
+              8.014,
+              7.437,
+              7.47,
+              7.4,
+              7.27
+            ],
+            "first_pass_us": 10.902000000000001,
+            "mean_range_groups": 1,
+            "mean_backtracked_groups": 0
+          }
+        }
+      },
+      "formation_ms": {
+        "Tree": 0.007299997378140688,
+        "Prefix groups": 27.83629999612458,
+        "Integer under": 83.22859999316279,
+        "Integer lower": 0.010200004908256233
+      },
+      "integer_info": {
+        "rows": 10000,
+        "groups": 9994,
+        "symbols": 0,
+        "row_signature_width": 33,
+        "interned_signature_bytes": 328831,
+        "group_column_trees": 0,
+        "last_candidate_groups": 1,
+        "last_candidate_rows": 1,
+        "mode": "integer",
+        "integer_bits": 264,
+        "last_range_groups": 1,
+        "last_backtracked_groups": 0,
+        "last_seek_integer": 89757363596886597681373962989079659045257822003451033325121508789652736,
+        "enabled": true,
+        "active": true
+      }
+    },
+    "100000": {
+      "workloads": {
+        "Tree": {
+          "Leading pair": {
+            "warm_us": 282.73,
+            "runs_us": [
+              258.161,
+              299.92,
+              282.73,
+              286.52299999999997,
+              277.86400000000003
+            ],
+            "first_pass_us": 266.23,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Hole in middle": {
+            "warm_us": 289.361,
+            "runs_us": [
+              294.45099999999996,
+              288.982,
+              289.361,
+              291.575,
+              276.497
+            ],
+            "first_pass_us": 309.347,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Nonleading pair": {
+            "warm_us": 1509.78,
+            "runs_us": [
+              1528.2420000000002,
+              1503.1470000000002,
+              1509.78,
+              1478.568,
+              1531.8239999999998
+            ],
+            "first_pass_us": 1518.616,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "All columns": {
+            "warm_us": 282.475,
+            "runs_us": [
+              272.53700000000003,
+              282.475,
+              291.99,
+              292.441,
+              270.39
+            ],
+            "first_pass_us": 279.315,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          }
+        },
+        "Prefix groups": {
+          "Leading pair": {
+            "warm_us": 129.17600000000002,
+            "runs_us": [
+              120.413,
+              127.43299999999999,
+              130.439,
+              131.023,
+              129.17600000000002
+            ],
+            "first_pass_us": 1434.3229999999999,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Hole in middle": {
+            "warm_us": 107.391,
+            "runs_us": [
+              114.963,
+              107.391,
+              92.823,
+              106.227,
+              108.60600000000001
+            ],
+            "first_pass_us": 654.5369999999999,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "Nonleading pair": {
+            "warm_us": 319.522,
+            "runs_us": [
+              307.488,
+              351.099,
+              306.039,
+              329.186,
+              319.522
+            ],
+            "first_pass_us": 2985.415,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          },
+          "All columns": {
+            "warm_us": 45.347,
+            "runs_us": [
+              47.06,
+              43.813,
+              44.141999999999996,
+              49.52,
+              45.347
+            ],
+            "first_pass_us": 48.858000000000004,
+            "mean_range_groups": null,
+            "mean_backtracked_groups": null
+          }
+        },
+        "Integer under": {
+          "Leading pair": {
+            "warm_us": 11.705,
+            "runs_us": [
+              24.906999999999996,
+              13.321,
+              11.705,
+              10.776,
+              10.07
+            ],
+            "first_pass_us": 19.889,
+            "mean_range_groups": 2.95,
+            "mean_backtracked_groups": 0.67
+          },
+          "Hole in middle": {
+            "warm_us": 24.943,
+            "runs_us": [
+              24.943,
+              22.840999999999998,
+              39.551,
+              27.263,
+              22.428
+            ],
+            "first_pass_us": 27.138,
+            "mean_range_groups": 190.96,
+            "mean_backtracked_groups": 18.44
+          },
+          "Nonleading pair": {
+            "warm_us": 5322.066999999999,
+            "runs_us": [
+              5322.066999999999,
+              5176.045999999999,
+              5101.556,
+              5631.215,
+              5368.306
+            ],
+            "first_pass_us": 4986.834,
+            "mean_range_groups": 99098.98,
+            "mean_backtracked_groups": 27272.7
+          },
+          "All columns": {
+            "warm_us": 8.777999999999999,
+            "runs_us": [
+              11.069,
+              8.777999999999999,
+              8.406,
+              9.19,
+              8.027999999999999
+            ],
+            "first_pass_us": 18.862000000000002,
+            "mean_range_groups": 1,
+            "mean_backtracked_groups": 0
+          }
+        },
+        "Integer lower": {
+          "Leading pair": {
+            "warm_us": 9.05,
+            "runs_us": [
+              10.355,
+              8.996,
+              9.131,
+              9.02,
+              9.05
+            ],
+            "first_pass_us": 13.578,
+            "mean_range_groups": 2.95,
+            "mean_backtracked_groups": 0
+          },
+          "Hole in middle": {
+            "warm_us": 25.939,
+            "runs_us": [
+              28.188000000000002,
+              33.516999999999996,
+              25.939,
+              23.218000000000004,
+              23.311999999999998
+            ],
+            "first_pass_us": 25.899,
+            "mean_range_groups": 190.96,
+            "mean_backtracked_groups": 0
+          },
+          "Nonleading pair": {
+            "warm_us": 5071.582,
+            "runs_us": [
+              5071.582,
+              4958.813,
+              5240.284000000001,
+              5071.111,
+              5151.795
+            ],
+            "first_pass_us": 5325.783,
+            "mean_range_groups": 99098.98,
+            "mean_backtracked_groups": 0
+          },
+          "All columns": {
+            "warm_us": 7.5920000000000005,
+            "runs_us": [
+              7.461,
+              7.5920000000000005,
+              7.664,
+              7.62,
+              7.327999999999999
+            ],
+            "first_pass_us": 12.056,
+            "mean_range_groups": 1,
+            "mean_backtracked_groups": 0
+          }
+        }
+      },
+      "formation_ms": {
+        "Tree": 0.006100002792663872,
+        "Prefix groups": 212.0271000021603,
+        "Integer under": 773.3767999889096,
+        "Integer lower": 0.01170000177808106
+      },
+      "integer_info": {
+        "rows": 100000,
+        "groups": 99295,
+        "symbols": 0,
+        "row_signature_width": 33,
+        "interned_signature_bytes": 3266876,
+        "group_column_trees": 0,
+        "last_candidate_groups": 1,
+        "last_candidate_rows": 1,
+        "mode": "integer",
+        "integer_bits": 264,
+        "last_range_groups": 1,
+        "last_backtracked_groups": 0,
+        "last_seek_integer": 89758943281261626039174431714719539415184759595635932249837072281699331,
+        "enabled": true,
+        "active": true
+      }
+    }
+  }
+}

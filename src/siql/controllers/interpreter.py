@@ -232,7 +232,7 @@ class Interpreter():
             inner = Interpreter._scan_where(table, e.item)
             return None if inner is None else set(everything) - inner
         if isinstance(e, (And, Or)):
-            if isinstance(e, And) and table.tree and table.compressed_search:
+            if isinstance(e, And) and table.tree and (table.compressed_search or table.integer_search):
                 criteria = {}
                 for item in e.items:
                     if not isinstance(item, Compare) or SCAN_OPS[item.op] != EQ:

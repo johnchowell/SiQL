@@ -8,7 +8,7 @@ from .row import RowStruct, Cell, Row
 from .diff import TableDiff, DiffOp, AddCol, AddRow, SetCell, commit_line
 from .tree import ColumnTree
 from .cache import QueryCache, DEFAULT_CACHE_BYTES
-from .prefix import CompressedIndex
+from .prefix import CompressedIndex, IntegerIndex
 from ..helpers.format import box
 from ..helpers.search import scan, EQ
 
@@ -28,7 +28,7 @@ class Table():
 
     def __init__(self, t:list[Row] | None = None, *, file=None, tree:bool = True, lazy_delete:bool = False,
                  cache_max_bytes:int = DEFAULT_CACHE_BYTES, cache_traversed_nodes:bool = False,
-                 compressed_search:bool = False, lazy_add:bool = False):
+                 compressed_search:bool = False, lazy_add:bool = False, integer_search:bool = False):
         """
         Args:
             t: initial rows (only allowed when the file is new or empty)
@@ -41,12 +41,14 @@ class Table():
             cache_traversed_nodes: also admit values inspected during skip-list traversal to that same cache.
             compressed_search: group hidden all-column prefix signatures for multi-column exact lookup; opt-in.
             lazy_add: defer new cells' tree insertion until their branches are searched; rows and saving remain immediate.
+            integer_search: use a full-value packed integer index for multi-column exact lookup; opt-in.
         """
         self.rows = []
         self.struct = RowStruct()
         self.cols = {}
         self.index = None
         self._compressed_enabled = False
+        self._integer_enabled = False
         self._compressed_index = None
         self._query_cache = QueryCache(cache_max_bytes, traversed_nodes=cache_traversed_nodes)
         self.lazy_delete = lazy_delete
@@ -72,6 +74,7 @@ class Table():
         self.save()
         self.tree = tree
         self.compressed_search = compressed_search
+        self.integer_search = integer_search
 
     @property
     def lazy_add(self):
@@ -95,17 +98,38 @@ class Table():
         if type(enabled) is not bool:
             raise ValueError("compressed_search must be a boolean")
         self._compressed_enabled = enabled
-        if not enabled and self._compressed_index is not None:
+        self._configure_composite()
+
+    @property
+    def integer_search(self):
+        return self._integer_enabled
+
+    @integer_search.setter
+    def integer_search(self, enabled):
+        if type(enabled) is not bool:
+            raise ValueError("integer_search must be a boolean")
+        self._integer_enabled = enabled
+        self._configure_composite()
+
+    def _configure_composite(self):
+        kind = IntegerIndex if self._integer_enabled else CompressedIndex if self._compressed_enabled else None
+        if self._compressed_index is not None and type(self._compressed_index) is not kind:
             self._compressed_index.close()
             self._compressed_index = None
-        if enabled and self.index is not None and self._compressed_index is None:
-            self._compressed_index = CompressedIndex(self)
+        if kind is not None and self.index is not None and self._compressed_index is None:
+            self._compressed_index = kind(self)
         for node in (self.index or {}).values():
-            node._on_change = self._compressed_cell_changed if enabled else None
+            node._on_change = self._compressed_cell_changed if kind is not None else None
+
+    @property
+    def integer_info(self):
+        if not isinstance(self._compressed_index, IntegerIndex):
+            return {'enabled': self._integer_enabled, 'active': False}
+        return dict(self._compressed_index.info, enabled=True, active=True)
 
     @property
     def compressed_info(self):
-        if self._compressed_index is None:
+        if self._compressed_index is None or isinstance(self._compressed_index, IntegerIndex):
             return {'enabled': self._compressed_enabled, 'active': False}
         return dict(self._compressed_index.info, enabled=True, active=True)
 
@@ -153,8 +177,7 @@ class Table():
             self.index = {}
             for name in self.struct.column_names:
                 self._index_column(name)
-            if self._compressed_enabled:
-                self._compressed_index = CompressedIndex(self)
+            self._configure_composite()
         elif not enabled and self.index is not None:
             self.clear_cache()
             if self._compressed_index is not None:
@@ -179,7 +202,8 @@ class Table():
 
     def _index_column(self, name:str):
         node = self.index[name] = ColumnTree(cache=self._query_cache,
-                                            on_change=self._compressed_cell_changed if self._compressed_enabled else None)
+                                            on_change=self._compressed_cell_changed
+                                            if self._compressed_enabled or self._integer_enabled else None)
         for row, cell in zip(self.rows, self.cols[name]):
             node.add(row, cell)
 

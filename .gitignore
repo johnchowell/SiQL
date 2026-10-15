@@ -9,3 +9,5 @@ dist/
 .venv/
 .venv-native/
 *.siql
+**/bin/
+**/obj/

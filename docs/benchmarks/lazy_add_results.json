@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "python": "3.12.8",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "measured_at": "2026-10-14T15:44:41.105372+00:00",
+    "rows": 50000,
+    "additions": 5000,
+    "repeats": 7,
+    "cache_max_bytes": 0,
+    "timing": "bulk append includes serialization and saving; fixture/diff creation excluded",
+    "order": "eager then lazy; separate fresh table each repeat; includes first position-map build",
+    "flush": "purge finishes remaining index work; total includes append, first read, and purge"
+  },
+  "results": {
+    "Eager add": {
+      "median_ms": {
+        "Append": 190.0186,
+        "First read": 5.6822,
+        "Flush": 0.5106,
+        "Total": 195.8212
+      },
+      "runs_ms": [
+        {
+          "Append": 131.2345,
+          "First read": 5.9697,
+          "Flush": 0.5057,
+          "Total": 137.7099
+        },
+        {
+          "Append": 181.6198,
+          "First read": 5.7836,
+          "Flush": 0.5314,
+          "Total": 187.9348
+        },
+        {
+          "Append": 190.4471,
+          "First read": 5.6822,
+          "Flush": 0.5443,
+          "Total": 196.6736
+        },
+        {
+          "Append": 226.5267,
+          "First read": 7.0714,
+          "Flush": 0.5593,
+          "Total": 234.1574
+        },
+        {
+          "Append": 202.3499,
+          "First read": 5.0505,
+          "Flush": 0.5106,
+          "Total": 207.911
+        },
+        {
+          "Append": 190.0186,
+          "First read": 5.3056,
+          "Flush": 0.497,
+          "Total": 195.8212
+        },
+        {
+          "Append": 186.8963,
+          "First read": 5.4193,
+          "Flush": 0.5068,
+          "Total": 192.8224
+        }
+      ]
+    },
+    "Lazy add": {
+      "median_ms": {
+        "Append": 187.126,
+        "First read": 14.6988,
+        "Flush": 4.4501,
+        "Total": 206.0553
+      },
+      "runs_ms": [
+        {
+          "Append": 187.126,
+          "First read": 13.3684,
+          "Flush": 9.7599,
+          "Total": 210.2543
+        },
+        {
+          "Append": 195.6677,
+          "First read": 15.2168,
+          "Flush": 5.686,
+          "Total": 216.5705
+        },
+        {
+          "Append": 136.9571,
+          "First read": 15.1961,
+          "Flush": 4.5477,
+          "Total": 156.7009
+        },
+        {
+          "Append": 195.535,
+          "First read": 15.2391,
+          "Flush": 4.2644,
+          "Total": 215.0385
+        },
+        {
+          "Append": 180.1856,
+          "First read": 13.6764,
+          "Flush": 3.8764,
+          "Total": 197.7384
+        },
+        {
+          "Append": 187.3194,
+          "First read": 14.2858,
+          "Flush": 4.4501,
+          "Total": 206.0553
+        },
+        {
+          "Append": 136.0657,
+          "First read": 14.6988,
+          "Flush": 4.4495,
+          "Total": 155.214
+        }
+      ]
+    }
+  }
+}

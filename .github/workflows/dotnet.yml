@@ -1,0 +1,35 @@
+name: .NET and Python parity
+
+on: [push, pull_request]
+
+jobs:
+  parity:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build the Python implementation
+        run: python -m pip install -e .
+      - name: Run the unchanged Python tests
+        run: python -m unittest discover -s src/siql/tests -t src
+      - name: Standalone .NET checks
+        run: dotnet run --project dotnet/SiQL.Tests -c Release
+      - name: Shared fixtures and bidirectional files
+        run: python tools/dotnet_parity.py
+      - name: Build .NET packages
+        run: |
+          dotnet pack dotnet/SiQL/SiQL.csproj -c Release -p:PackageOutputPath=../../dist/dotnet
+          dotnet pack dotnet/SiQL.Cli/SiQL.Cli.csproj -c Release -p:PackageOutputPath=../../dist/dotnet
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siql-dotnet-${{ matrix.os }}
+          path: dist/dotnet/*.nupkg
