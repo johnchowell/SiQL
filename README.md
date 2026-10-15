@@ -33,6 +33,18 @@ algorithms for comparison; those algorithms also run as compiled C++ in the nati
 SiQL has three layers. Use only the ones you need: `import siql` loads just the library, the
 interpreter loads the first time it's used, and the server only when you import `siql.server`.
 
+## .NET library
+
+The standalone C# port targets .NET 8 or later and needs no Python runtime. Build with
+`dotnet build dotnet/SiQL/SiQL.csproj -c Release`; create the local NuGet package with
+`dotnet pack dotnet/SiQL/SiQL.csproj -c Release -p:PackageOutputPath=../../dist/dotnet`.
+
+It includes the table and diff APIs, existing file format, search modes, rolling cache,
+SQL interpreter, CSV, HTTP server, and command-line tools. Shared fixtures compare Python
+and C# behavior and bidirectional files. See the [.NET usage guide](dotnet/README.md) and
+[feature/parity map](dotnet/PARITY.md). The performance graphs below measure Python/C++,
+not the C# port.
+
 ## Command line
 ```
 python -m siql "CREATE TABLE people (name str, age int)"
@@ -100,6 +112,24 @@ work explicitly. Reload and schema/tree rebuilds build ordinary complete indexes
 indexing cost from insertion to later searches or flushing; it does not defer saving or guarantee
 lower total work.
 
+A 5,000-row bulk append into a 50,000-row table measured:
+
+| Phase | Eager add (ms) | Lazy add (ms) |
+|---|---:|---:|
+| Append | 190.02 | 187.13 |
+| First read | 5.68 | 14.70 |
+| Flush | 0.51 | 4.45 |
+| Total | 195.82 | 206.06 |
+
+![Eager versus lazy append and deferred work](docs/benchmarks/lazy_add.svg)
+
+Measured on 2026-10-14 on Windows, Python 3.12.8,
+7 repeats, with caching disabled and a fresh table each repeat. Append includes
+serialization and saving; the first read includes building the position map. Total includes append,
+first read, and flushing the remaining index work. The phases show where costs move rather than
+claiming a general speed-up. [Raw results](docs/benchmarks/lazy_add_results.json) include each run.
+Reproduce with `python benchmarks/lazy_add.py`; use `--replot` to redraw the graph.
+
 #### Compressed column search (optional)
 `Table(compressed_search=True)` builds a hidden signature from every column: the first Unicode
 character of text, the first decimal digit of a number (ignoring its sign), or the first byte of
@@ -129,33 +159,97 @@ With this option enabled, SQL `AND` expressions containing only equality compari
 columns also use the grouped path. Other predicates retain their existing evaluation.
 `tree=False` suspends the extra index.
 
-This mode defaults to off. Native Windows measurements at 100,000 rows show the benefit depends
-on how many columns constrain a query (lower is better). The single-column grouped numbers below
-come from the prototype; the public API now uses the ordinary tree for that case:
+This mode defaults to off. At 100,000 rows on native Windows (lower is better):
 
 | Exact predicates | Tree + narrowed scan (µs/query) | Groups, first pass | Groups, warm trees |
 |---|---:|---:|---:|
-| One column | 176.19 | 1,465.69 | 781.63 |
-| Two columns | 402.53 | 692.72 | 146.51 |
-| All three columns | 319.28 | 507.23 | 56.78 |
+| One column | 157.92 | 1,353.40 | 632.86 |
+| Two columns | 283.06 | 1,042.56 | 131.59 |
+| All three columns | 284.12 | 108.37 | 48.28 |
 
-Warm three-column queries were 5.6× faster and narrowed the candidate set to about 28 rows on
-average. Warm single-column queries were 4.4× slower because they visited about 159 groups.
-At 1,000 and 10,000 rows, all measured grouped workloads were slower. Group trees are built lazily;
-the first-pass column includes that cost. Workloads run sequentially, so later first passes may
-reuse trees created by earlier workloads. Initial group formation is timed separately in the raw
-results. The extra index and group trees use additional memory outside the rolling cache budget;
-only their cached query results share that budget.
+The single-column grouped numbers deliberately force the prototype path; public single-column
+searches use the ordinary tree. Warm all-column searches took
+48.28 µs versus
+284.12 µs for the ordinary tree, with about
+28 candidate rows. Single-column grouping visited
+about 159 groups per query.
+
+Group trees are built lazily; first-pass timings include that cost. Workloads run sequentially,
+so later first passes may reuse trees from earlier workloads. Initial group formation is reported
+separately. Index storage lies outside the rolling cache budget; cached group results share it.
 
 ![Prefix grouping versus the existing search tree](docs/benchmarks/compressed_search.svg)
 
-Measured on 2026-10-13 with native Python 3.12.8 on Windows, 300 queries per workload, nine repeats,
-and result caching disabled to isolate the index. Every result agreed with the ordinary search.
-The fixture has three columns: 512 names, integer ages 0–99, and two-byte binary values.
-[Raw measurements](docs/benchmarks/compressed_search_results.json) include all three table sizes,
-candidate counts, and formation times. The benchmark deliberately forces the prototype's grouped
-path for the single-column comparison. Run `python benchmarks/compressed_search.py` to reproduce;
-`--quick` shortens the run and `--replot` redraws the graph.
+Measured on 2026-10-14 with Python 3.12.8 on Windows,
+300 queries per workload, 9 repeats, and result caching disabled.
+Every query agreed with ordinary search. The fixture has 512 names, ages 0–99, and two-byte values.
+[Raw measurements](docs/benchmarks/compressed_search_results.json) include all sizes and repeats.
+Reproduce with `python benchmarks/compressed_search.py`; `--replot` redraws the graph.
+
+#### Full-row integer search (optional)
+`Table(integer_search=True)` encodes the full supported value of every column into bytes, pads
+each column to its observed maximum encoded width, and packs those bits into one integer.
+The index sorts these integers in schema column order; public results retain their ordinary row
+order. This is an additional index, and it defaults to off. Single-column searches keep using
+the ordinary tree and cache.
+
+```python
+people.integer_search = True
+people.find_where(name="Ann", age=31)
+print(people.integer_info)                 # bit width, seek, range size, backtracking
+people.integer_search = False
+```
+
+For unsearched fields, the initial jump uses the row-weighted mean encoded value minus one
+quarter of its observed range, clamped to safe bounds. This deliberately aims below the mean.
+It estimates encoded bits, rather than a semantic average of names or other text. An estimate
+can still land after a match, so searches scan forward and back within a conservative integer
+interval, test the specified field bits, and finally check exact values. No valid match is
+discarded because it falls before the estimated jump. A lower-bound seek is also measured by
+the benchmark to isolate whether the estimate helps.
+
+Strings retain their full UTF-8 encoding (including trailing NULs), binary fields retain every
+byte, and numeric values use a canonical numerator/denominator encoding so `1`, `1.0`, and `True`
+share bits. Length prefixes distinguish padding from actual data. This order is an order of
+encoded bits, rather than numeric, lexical, or semantic similarity. Custom and unsupported
+values use wildcard routing followed by exact comparisons.
+
+Edits and schema changes invalidate the sorted order; the next grouped search rebuilds it,
+including wider column slots when needed. Mutable binary values are checked before searching.
+The encoded values, sorted keys, and auxiliary maps consume memory outside the rolling cache
+budget. The index is in memory only and is rebuilt on reload. SQL equality conjunctions use
+this path when enabled. Integer mode takes precedence if compressed prefix mode is also enabled;
+disabling integer mode restores the prefix mode.
+
+The first columns dominate the packed integer. Queries omitting an early column can span most
+of the sorted index, and jumping near an average does not reduce the work needed to return all
+exact matches in that interval.
+
+At 100,000 rows on native Windows, warm exact searches measured:
+
+| Searched columns | Ordinary tree (µs/query) | Prefix groups | Integer, low estimate | Integer, lower bound |
+|---|---:|---:|---:|---:|
+| Leading pair | 282.73 | 129.18 | 11.71 | 9.05 |
+| Hole in middle | 289.36 | 107.39 | 24.94 | 25.94 |
+| Nonleading pair | 1,509.78 | 319.52 | 5,322.07 | 5,071.58 |
+| All columns | 282.48 | 45.35 | 8.78 | 7.59 |
+
+The leading pair scanned about 3 integer keys;
+the pair omitting the first column scanned about
+99,099. The two seeks cover identical ranges:
+estimating the initial jump does not remove the need to check earlier matches. Individual timings
+vary, so small differences are not evidence of a general advantage for either jump strategy.
+Integer index formation and sorting took 0.77 seconds,
+excluded from query timing. Mutations and wider fields can make rebuilding costly.
+
+![Full-row integer search comparison](docs/benchmarks/integer_search.svg)
+
+Measured on 2026-10-14, Python 3.12.8 on Windows,
+100 queries per workload, 5 repeats, with caching disabled.
+Every result agreed with ordinary search. Modes run sequentially; lower-bound trials reuse the
+integer index. Both integer trials use identical direct calls and position conversion.
+[Raw results](docs/benchmarks/integer_search_results.json) include smaller sizes and each run.
+Reproduce with `python benchmarks/integer_search.py`; `--replot` redraws the graph.
 
 #### Rolling query-result cache
 Each table has a least-recently-used cache for indexed exact lookups, with a default budget of
@@ -208,83 +302,77 @@ ordinary cached results. Inspected values and requested results compete in one L
 are touched last. Express-lane jumps retain their normal behavior. The cache records compared nodes
 without expanding the ranges they skip, and it retains no raw native node pointers.
 
-This mode is off by default because the measured admission cost outweighed its additional hits.
-At 100,000 rows on native Windows, starting each run with an empty cache:
+This mode is off by default. At 100,000 rows on native Windows, starting with an empty cache:
 
 | Workload | Results only (µs/query) | Inspected nodes (µs/query) | Inspected-node hit rate |
 |---|---:|---:|---:|
-| Random distinct values | 6.79 | 32.03 | 5.6% |
-| Nearby distinct values | 3.14 | 8.65 | 20.5% |
-| Repeated names | 0.85 | 2.11 | 96.8% |
+| Random distinct | 9.07 | 39.69 | 5.1% |
+| Nearby distinct | 4.25 | 12.42 | 21.2% |
+| Repeated names | 0.89 | 2.09 | 96.8% |
 
-The random-distinct case retained 6.92 MB and 10,309 entries, compared with 0.67 MB and 1,000
-entries for result-only caching. Increased coverage did not make this workload faster. The separate
-10,000-operation mutation stress passed all 30,000 SQLite comparisons, runtime resizes, and reload.
-Turn off new traversal admissions with `cache_traversed_nodes=False`; `clear_cache()` removes entries
-already admitted when comparing modes.
+Random distinct searches retained 7.15 MB and
+10,652 entries with traversal admissions, versus
+0.67 MB and 1,000 entries for results only.
+The separate mutation stress passed 30,000 SQLite comparisons
+with zero mismatches. `cache_traversed_nodes=False` stops new traversal admissions;
+`clear_cache()` removes already admitted entries when comparing modes.
 
 ![Result-only versus inspected-node caching](docs/benchmarks/traversal_cache.svg)
 
-Measured on 2026-10-13 using Python 3.12.8 on Windows, nine repeats, and the same live tree for each
-mode. Queries include admission and result conversion; repeated-name timings here include filling
-the initial cache. Per-run timings and stress results are in
-[traversal_cache_results.json](docs/benchmarks/traversal_cache_results.json). Reproduce with
-`python benchmarks/traversal_cache.py`; `--quick` shortens the run and `--replot` redraws the graph.
+Measured on 2026-10-14, Python 3.12.8 on Windows,
+9 repeats using the same live tree. Queries include admission and conversion;
+repeated-name timing includes the initial cache fill.
+[Raw results](docs/benchmarks/traversal_cache_results.json) include all runs and stress results.
+Reproduce with `python benchmarks/traversal_cache.py`; `--replot` redraws the graph.
 
 #### Cache speed and stress against SQLite
-The cache and tree were compared with indexed SQLite on 1,000, 10,000, 50,000, and 100,000 rows.
-Each workload used up to 3,000 queries and nine repeats; timings include returning all row IDs.
-Repeated-name queries use 32 names; fan-out queries use 16 categories. Distinct queries begin with
-an empty SiQL result cache. SQLite's statement cache, index, and data pages are warm in all cases.
-Query plans confirm covering index searches. Fixtures, initial loading, and prewarming are excluded.
+The cache and tree were compared with indexed SQLite on 1,000, 10,000, 50,000, and 100,000 rows,
+up to 3,000 queries per workload and 9 repeats. Timings include
+returning all row IDs. Repeated names use 32 names; fan-out uses 16 categories. Distinct-key traces
+start with an empty result cache. SQLite statements and pages are warm; plans use covering indexes.
+Fixtures and prewarming are excluded.
 
 Native Windows results at 100,000 rows (µs/query; lower is better):
 
 | Workload | SiQL tree, cache off | SiQL cache | SQLite in memory | SQLite file, warm |
 |---|---:|---:|---:|---:|
-| Repeated names, one row | 2.88 | 1.31 | 2.57 | 42.90 |
-| Distinct names, one row | 11.06 | 17.00 | 5.35 | 58.39 |
-| Repeated categories, about 391 rows | 328.29 | 119.26 | 230.36 | 263.39 |
+| Repeated names | 2.44 | 0.76 | 1.51 | 26.61 |
+| Cold distinct names | 7.44 | 9.60 | 1.92 | 26.63 |
+| Repeated fan-out | 177.39 | 71.85 | 131.14 | 159.28 |
 
-Cached repeat lookups are about 2× faster than in-memory SQLite here. Distinct lookups favor SQLite;
-cache insertion adds overhead without a repeat hit. The file-backed measurements include SQLite's
-normal file/locking work and use warm pages; they do not measure cold-disk reads or durable writes.
-SiQL keeps its table rows resident. These results compare indexed lookup, rather than general SQL
-performance or total database memory use.
+The file-backed case includes normal file and locking work, with warm pages. It does not measure
+cold-disk reads or durable writes. SiQL keeps rows resident; these compare indexed lookups rather
+than general SQL performance or total database memory.
 
 ![Cached repeat lookup against SQLite on Windows](docs/benchmarks/windows_cache_tests/cache_sqlite_hot.svg)
 ![Distinct-key lookup against SQLite on Windows](docs/benchmarks/windows_cache_tests/cache_sqlite_cold.svg)
 ![Rolling cache under memory pressure on Windows](docs/benchmarks/windows_cache_tests/cache_stress_memory.svg)
 
-Stress passed on both Windows and WSL: 10,000 mixed operations per platform, each followed by three
-comparisons against SQLite, with zero mismatches. The workload includes edits, appends, lazy deletes,
-73 runtime resizes, and ten column renames; reloading the final compacted table also matched SQLite.
-Each platform additionally ran 520,000 distinct cache-pressure queries. Windows retained about
-100 MB of accounted cache storage with 57.5 MB of traced allocation growth, stable across two churn
-cycles. Shrinking to 1 MB reduced traced growth to 0.59 MB; disabling released all cache entries.
-Traced memory measures Python allocations, not process RSS or the already resident table.
+![Cached repeat lookup against SQLite on WSL](docs/benchmarks/cache_sqlite_hot.svg)
+![Distinct-key lookup against SQLite on WSL](docs/benchmarks/cache_sqlite_cold.svg)
+![Rolling cache under memory pressure on WSL](docs/benchmarks/cache_stress_memory.svg)
 
-The full CRUD suite was also rerun with the result cache disabled. At 50,000 rows on WSL, indexed
-SQLite took 25.4 µs/create, 28.0 µs/update, and 25.2 µs/delete. SiQL's plain tree took 40.3, 38.2,
-and 4,290.5 µs respectively; lazy deletion reduced SiQL deletes to 46.5 µs. SQLite uses autocommit
-with `synchronous=OFF` in this CRUD suite, so these write timings are not a durability comparison.
-The batch suite, also with caching disabled, measured tree-ordered speed-ups of 1.16× for random
-names, 1.70× for nearby numbers, and 2.40× for repeated names at 50,000 rows.
+Stress passed on both Windows and WSL: 10,000 mixed operations per platform,
+30,000 SQLite comparisons each, zero mismatches, and matching compacted reloads.
+The trace includes edits, appends, lazy deletes, runtime resizes, and column renames. Each platform
+also ran 520,000 cache-pressure queries. Windows filled to
+100.00 MB of accounted cache with
+57.49 MB of traced growth. Shrinking to 1 MB left
+0.59 MB traced; disabling removed all entries.
+Traced allocation growth excludes existing rows and is not process RSS. Tracing affects stress timing.
 
-Measured on 2026-10-13 on an Intel Core Ultra 7 165U. Windows uses Python 3.12.8 / SQLite 3.45.3;
-WSL uses Python 3.14.4 / SQLite 3.46.1. In the WSL 100,000-row repeat-name workload, SiQL cache,
-in-memory SQLite, and file-backed SQLite measured 0.78, 1.70, and 6.75 µs/query respectively.
-Raw [Windows lookup results](docs/benchmarks/windows_cache_tests/cache_sqlite_results.json),
-[Windows stress results](docs/benchmarks/windows_cache_tests/cache_stress_results.json),
-[WSL lookup results](docs/benchmarks/cache_sqlite_results.json),
-[WSL stress results](docs/benchmarks/cache_stress_results.json),
-[current CRUD results](docs/benchmarks/current_crud/results.json), and
-[current batch results](docs/benchmarks/current_batch/batch_results.json) include individual repeats.
-
-Reproduce with `python benchmarks/cache_sqlite.py`; `--quick` runs a shorter check. Use `--no-plots`
-without Matplotlib, `--output DIRECTORY` for separate platform results, and `--replot` to redraw saved
-graphs. The existing `python benchmarks/crud.py` and `python benchmarks/batch.py` reproduce the
-broader suites. Timing differences depend on workload, platform, and run-to-run noise.
+Measured on 2026-10-14 (Windows) and 2026-10-14 (WSL2),
+Intel Core Ultra 7 165U. Windows: Python 3.12.8 / SQLite 3.45.3;
+WSL: Python 3.14.4 / SQLite 3.46.1. WSL repeated-name results were
+0.56 µs for SiQL cache, 1.13 µs for SQLite in memory, and
+4.48 µs for warm file SQLite.
+Raw [Windows lookups](docs/benchmarks/windows_cache_tests/cache_sqlite_results.json),
+[Windows stress](docs/benchmarks/windows_cache_tests/cache_stress_results.json),
+[WSL lookups](docs/benchmarks/cache_sqlite_results.json), and
+[WSL stress](docs/benchmarks/cache_stress_results.json) include runs and snapshots.
+The separate CRUD and batch comparisons below use caching disabled.
+Reproduce with `python benchmarks/cache_sqlite.py`; `--no-plots` supports environments without
+Matplotlib, `--output DIRECTORY` separates platform results, and `--replot` redraws the graphs.
 
 #### Chained batch tree searches
 `find_batch` searches exact values through the existing tree. It groups queries by branch, orders nearby
@@ -323,24 +411,18 @@ At 50,000 rows with 300-query batches:
 
 | Workload | Independent (µs/query) | Tree order + chain (µs/query) | Speed-up |
 |---|---:|---:|---:|
-| Random names | 2.35 | 2.10 | 1.12× |
-| Nearby numbers, shuffled | 1.13 | 0.63 | 1.78× |
-| Repeated names | 1.07 | 0.35 | 3.05× |
+| Random names | 2.70 | 2.37 | 1.14× |
+| Nearby numbers | 1.74 | 0.88 | 1.98× |
+| Repeated names | 1.55 | 0.55 | 2.79× |
 
-All batch modes matched independent exact searches. Part of the gain over independent calls comes
-from batching calls and branch work; the fresh-path comparison isolates the additional traversal benefit.
-
-Measured on 2026-10-09 using native SiQL, Python 3.14.4, Linux (WSL2), Intel Core Ultra 7 165U.
-Tables have random eight-letter names and sequential numbers. Nearby queries are 300 shuffled
-contiguous numbers within one branch; repeated queries sample eight names. Timings are medians of
-nine timed passes, each containing twenty calls to the warm batch, including ordering and restoring
-result order. Repeating each batch within a timing pass reduces overhead and short-timer noise.
-The batch benchmark disables the result cache to measure traversal improvements. These measurements
-use a different workload and warm-up procedure from the earlier single-query
-graphs. Raw timings and batch sizes 8, 32, 128, and 512 are in
-[batch_results.json](docs/benchmarks/batch_results.json). Reproduce with `python benchmarks/batch.py`;
-`--quick` runs a shorter comparison and `--replot` redraws the graphs. Results depend on workload
-and batch size; small differences can reflect timing noise.
+All batch modes matched independent exact searches. Batching saves calls and repeated branch work;
+the fresh-path comparison isolates additional traversal effects.
+Measured on 2026-10-14, native Python 3.14.4 on WSL2,
+9 repeats with 20 warm batches per pass, caching disabled.
+Nearby queries are shuffled contiguous numbers within one branch; repeats sample eight names.
+Timing includes ordering and restoring input order. [Raw results](docs/benchmarks/batch_results.json)
+include batch sizes 8, 32, 128, and 512. Reproduce with `python benchmarks/batch.py`;
+`--replot` redraws the graphs.
 
 #### Lazy delete
 `Table(lazy_delete=True)` (off by default) queues the tree's cleanup for deleted rows instead of doing it at once.
@@ -362,7 +444,8 @@ without those rows and builds the tree without them.
 #### Performance: tree off vs on vs lazy delete, and SQLite
 Each operation was timed on tables of 1,000, 10,000 and 50,000 rows (`name` = random 8-letter string,
 `n` = row number), with 300 operations of each kind, taking the median of 3 runs. SiQL ran with all
-implementation modules compiled to C++ and the C search engine enabled. SQLite (3.46.1, through
+implementation modules compiled to C++ and the C search engine enabled, with result caching disabled.
+Lazy add and both optional composite indexes were off. SQLite (3.46.1, through
 Python's `sqlite3`) ran the same steps with every statement saved on its own (autocommit) and
 `synchronous=OFF`. "SQLite, indexed" also has an index on each column.
 
@@ -380,55 +463,55 @@ Python's `sqlite3`) ran the same steps with every statement saved on its own (au
 
 | Operation | Rows | Tree off (µs/op) | Tree on (µs/op) | Tree on + lazy delete (µs/op) | SQLite (µs/op) | SQLite, indexed (µs/op) |
 |---|---:|---:|---:|---:|---:|---:|
-| Create | 1,000 | 24.3 | 24.1 | 22.8 | 13.5 | 18.4 |
-| Create | 10,000 | 24.6 | 27.5 | 28.4 | 15.9 | 21.0 |
-| Create | 50,000 | 32.4 | 33.4 | 41.7 | 16.9 | 23.6 |
-| Read (str) | 1,000 | 14.8 | 1.6 | 1.7 | 32.9 | 4.5 |
-| Read (str) | 10,000 | 175.6 | 6.8 | 6.3 | 293.2 | 5.3 |
-| Read (str) | 50,000 | 1,089.4 | 23.4 | 30.1 | 1,528.3 | 5.4 |
-| Read (int) | 1,000 | 11.9 | 1.2 | 1.3 | 21.2 | 4.1 |
-| Read (int) | 10,000 | 139.3 | 3.1 | 3.3 | 202.7 | 4.9 |
-| Read (int) | 50,000 | 1,181.3 | 5.3 | 5.8 | 1,061.3 | 5.1 |
-| Update | 1,000 | 32.0 | 23.2 | 16.0 | 43.2 | 18.5 |
-| Update | 10,000 | 200.1 | 22.0 | 23.8 | 348.8 | 25.0 |
-| Update | 50,000 | 1,237.1 | 27.0 | 25.0 | 1,575.0 | 28.4 |
-| Delete | 1,000 | 27.9 | 59.2 | 19.6 | 38.2 | 17.6 |
-| Delete | 10,000 | 176.1 | 583.6 | 27.3 | 318.6 | 20.3 |
-| Delete | 50,000 | 1,302.7 | 4,371.2 | 44.7 | 1,667.2 | 25.5 |
+| Create | 1,000 | 32.1 | 29.2 | 30.3 | 19.4 | 26.2 |
+| Create | 10,000 | 27.3 | 36.9 | 39.3 | 18.5 | 23.6 |
+| Create | 50,000 | 35.0 | 38.8 | 49.9 | 18.9 | 25.7 |
+| Read (str) | 1,000 | 18.8 | 2.6 | 2.1 | 48.2 | 6.0 |
+| Read (str) | 10,000 | 199.4 | 7.4 | 6.8 | 357.4 | 5.7 |
+| Read (str) | 50,000 | 1,076.3 | 24.2 | 26.9 | 1,681.3 | 6.7 |
+| Read (int) | 1,000 | 15.6 | 2.1 | 1.9 | 30.9 | 5.5 |
+| Read (int) | 10,000 | 161.6 | 4.5 | 4.0 | 230.5 | 5.1 |
+| Read (int) | 50,000 | 1,044.1 | 6.1 | 6.6 | 1,145.9 | 6.2 |
+| Update | 1,000 | 39.9 | 26.9 | 22.4 | 59.4 | 27.2 |
+| Update | 10,000 | 247.3 | 33.1 | 28.5 | 368.9 | 23.8 |
+| Update | 50,000 | 1,380.8 | 33.5 | 31.9 | 1,669.1 | 29.4 |
+| Delete | 1,000 | 39.0 | 78.5 | 26.4 | 51.4 | 25.6 |
+| Delete | 10,000 | 214.2 | 730.9 | 37.0 | 373.5 | 22.2 |
+| Delete | 50,000 | 1,293.9 | 4,104.3 | 54.0 | 1,666.7 | 28.4 |
 
 These measurements show:
 
-- Reads and updates are 1.4–222× faster with the tree than without across the tested sizes.
-- At 50,000 rows, tree-on integer lookups take 5.3 µs versus
-  5.1 µs for indexed SQLite; updates take
-  27.0 versus 28.4 µs.
+- Reads and updates are 1.5–172× faster with the tree than without across the tested sizes.
+- At 50,000 rows, tree-on integer lookups take 6.1 µs versus
+  6.2 µs for indexed SQLite; updates take
+  33.5 versus 29.4 µs.
 - String lookups include building the row-position map on their first lookup. Integer lookups run next and
   reuse it. These are workload averages, not measurements of warmed-up lookups alone.
-- At 50,000 rows, lazy deletes take 44.7 µs versus
-  4,371.2 µs with the plain tree, a 97.7×
+- At 50,000 rows, lazy deletes take 54.0 µs versus
+  4,104.3 µs with the plain tree, a 76.0×
   improvement. The plain tree rebuilds its position map after each deletion in this workload.
 
-#### Native C++ compared with the previous Python implementation
-The previous implementation at commit `bd20da941323` was rerun on the same
+#### Native C++ compared with the same Python source
+The current maintained source was run as interpreted Python and as compiled C++ on the same
 machine, using the same Python version, data, C search engine, and benchmark settings. The runs were
-sequential. This compares compiling the rest of SiQL to C++ while keeping the C search engine in both runs.
-Speed-up is previous Python time divided by native time: above 1× is faster; below 1× is slower.
+sequential. The Python run uses an isolated source copy with the identical native C search extension.
+Speed-up is Python time divided by native time: above 1× is faster; below 1× is slower.
 
-![Previous Python and native C++ timings at 50,000 rows](docs/benchmarks/native_comparison.svg)
+![Current Python source and native C++ timings at 50,000 rows](docs/benchmarks/native_comparison.svg)
 ![Speed-up from compiling the library to C++](docs/benchmarks/native_speedup.svg)
 
-| Operation | Previous Python, tree on (µs/op) | Native C++, tree on (µs/op) | Tree-on speed-up | Lazy-delete speed-up |
+| Operation | Python source, tree on (µs/op) | Native C++, tree on (µs/op) | Tree-on speed-up | Lazy-delete speed-up |
 |---|---:|---:|---:|---:|
-| Create | 34.0 | 33.4 | 1.02× | 1.11× |
-| Read (str) | 24.7 | 23.4 | 1.06× | 0.90× |
-| Read (int) | 6.0 | 5.3 | 1.12× | 1.10× |
-| Update | 28.0 | 27.0 | 1.04× | 1.02× |
-| Delete | 4,482.5 | 4,371.2 | 1.03× | 1.14× |
+| Create | 32.7 | 38.8 | 0.84× | 0.90× |
+| Read (str) | 22.7 | 24.2 | 0.94× | 1.01× |
+| Read (int) | 5.6 | 6.1 | 0.92× | 0.98× |
+| Update | 27.9 | 33.5 | 0.83× | 0.96× |
+| Delete | 3,842.1 | 4,104.3 | 0.94× | 0.90× |
 
-Tree-on speed-ups at 50,000 rows range from 1.02× to 1.12× across these operations.
-Compilation does not improve every operation in this run. File writes, Python object comparisons, and
-table-file parsing still contribute to the timings. Only medians were recorded, so small differences may
-reflect run-to-run noise. These results describe this workload and machine.
+Tree-on speed-ups at 50,000 rows range from 0.83× to 0.94× across these operations.
+All five tree-on operations were slower in this run. File writes, Python object comparisons, and
+table-file parsing still contribute to the timings. Sequential runs and timing noise can affect
+comparisons. These results describe this workload and machine.
 
 #### Storage
 ![File size after the creates](docs/benchmarks/storage.svg)
@@ -454,21 +537,21 @@ a fresh batch of deletes, apart from the repeated lookups.
 
 | Operation | Tree off (µs/op) | Tree on (µs/op) | Tree on + lazy delete (µs/op) | Lazy vs tree on |
 |---|---:|---:|---:|---:|
-| Read (str) | 2,244.4 | 21.5 | 25.7 | 0.84× |
-| Read (str), again | 2,157.6 | 4.5 | 6.3 | 0.71× |
-| Read (int) | 1,613.1 | 25.0 | 33.7 | 0.74× |
-| Update | 2,413.9 | 49.5 | 70.0 | 0.71× |
-| Append | 25.0 | 27.8 | 28.7 | 0.97× |
-| Delete + read | 2,573.7 | 6,196.7 | 92.7 | 66.82× |
+| Read (str) | 2,889.1 | 24.8 | 24.7 | 1.00× |
+| Read (str), again | 2,664.7 | 7.1 | 5.6 | 1.27× |
+| Read (int) | 1,609.6 | 27.1 | 34.0 | 0.80× |
+| Update | 2,165.3 | 57.8 | 70.4 | 0.82× |
+| Append | 24.6 | 78.6 | 38.9 | 2.02× |
+| Delete + read | 2,189.1 | 6,610.6 | 111.2 | 59.45× |
 
 The first lookups after lazy deletes clean the branches they read. Repeated string lookups take
-6.3 µs with lazy delete and 4.5 µs
-with the plain tree. Mixed deleting and reading takes 92.7 µs with lazy
-delete, 6,196.7 µs with the plain tree, and
-2,573.7 µs without a tree. Lazy delete is
-66.8× faster than the plain tree for that workload.
+5.6 µs with lazy delete and 7.1 µs
+with the plain tree. Mixed deleting and reading takes 111.2 µs with lazy
+delete, 6,610.6 µs with the plain tree, and
+2,189.1 µs without a tree. Lazy delete is
+59.4× faster than the plain tree for that workload.
 
-Measured on 2026-10-08 with SiQL 1.0.0 (native C++ modules and C search), SQLite 3.46.1,
+Measured on 2026-10-14 with SiQL 1.0.0 (native C++ modules and C search), SQLite 3.46.1,
 Python 3.14.4, Linux (WSL2), Intel Core Ultra 7 165U. Raw native numbers are in
 [results.json](docs/benchmarks/results.json); the same-machine Python baseline is in
 [results-python.json](docs/benchmarks/results-python.json). Run `python benchmarks/crud.py` for the full
@@ -537,12 +620,14 @@ sudo systemctl daemon-reload && sudo systemctl enable --now siql
 src/siql/
 ├── __init__.py          # public API (Interpreter, Command, QueryError load lazily)
 ├── __main__.py          # command line: python -m siql
-├── _speedups.c          # optional C versions of the search functions in helpers/search.py
+├── _speedups.c          # native C search engine
 ├── demo.py              # demo: python -m siql.demo
 ├── models/              # data structures
 │   ├── row.py           # RowStruct, Cell, Row
 │   ├── table.py         # Table (including saving to / loading from its .siql file)
 │   ├── tree.py          # ColumnTree, its branches and their skip lists: the per-column search tree
+│   ├── cache.py         # rolling query-result cache and traversal admissions
+│   ├── prefix.py        # compressed prefix groups and the full-row integer index
 │   └── diff.py          # diff notation: DiffOp subclasses, TableDiff, commit_line
 ├── managers/            # file management
 │   ├── table_file.py    # table_file
@@ -567,11 +652,25 @@ src/siql/
     ├── test_interpreter.py  # Database, parser, interpreter, management statements, command line
     ├── test_speedups.py     # C vs Python search functions; scan-based WHERE and ORDER BY
     ├── test_server.py       # HTTP API, config, systemd unit, CLI
+    ├── test_cache.py        # rolling cache coherence, accounting, and resizing
+    ├── test_traversal_cache.py # caching inspected skip-list nodes
+    ├── test_prefix.py       # hidden prefix groups and exact composite lookup
+    ├── test_integer_search.py # full-row integer seeks, backtracking, and mutations
+    ├── test_lazy_add.py     # deferred insertion with immediate visibility
     └── test_tree.py         # search tree structure, upkeep and lookups
 benchmarks/crud.py           # CRUD timings with the tree on and off; writes docs/benchmarks/
+benchmarks/refresh.py        # sequential full refresh of every dataset, graph, and README table
+benchmarks/update_readme.py  # regenerate README measurements from saved JSON
 ```
 
 ## Development
+Run `wsl -d Ubuntu -- .venv/bin/python benchmarks/refresh.py` from the repository root to
+refresh every benchmark dataset, graph, and README table sequentially. This uses the native
+WSL environment (with Matplotlib) and `.venv-native` on Windows. The Python/native comparison
+uses identical current source and the same C search engine. Logs are saved under
+`build/benchmark-refresh`; [refresh_manifest.json](docs/benchmarks/refresh_manifest.json) lists
+the refreshed graphs. `python benchmarks/update_readme.py` updates only the README from saved data.
+
 The HTTP server uses a thread per request, with a lock serializing table access. The library's
 `Table` is not thread-safe; callers sharing a table across threads must protect operations with
 their own lock. Native search functions retain the Python GIL, and batch searches run sequentially,
@@ -586,7 +685,7 @@ python -m siql.demo                                     # demo
 python -m unittest discover -s src/siql/tests -t src -v # tests (from the repository root)
 python benchmarks/crud.py                               # benchmarks and charts
 ```
-The editable install compiles the C extension (gcc/clang, or MSVC on Windows). Run the tests with
+The editable install compiles the C++ implementation and C search engine (GCC/Clang, or MSVC on Windows). Run the tests with
 `SIQL_PURE_PYTHON=1` as well to cover the Python fallback.
 
 ## Releasing
@@ -596,8 +695,8 @@ twine check dist/*
 twine upload dist/*
 ```
 The wheel now contains compiled code, so it only fits the platform that built it (for example
-`cp311-abi3-win_amd64`). Users on other platforms install from the source package, which compiles the extension
-or falls back to pure Python. Building wheels for Linux, macOS and Windows needs a build matrix such as
+`cp312-cp312-win_amd64`). Users on other platforms install from the source package, which requires a C/C++
+compiler to build the implementation. Building wheels for Linux, macOS and Windows needs a build matrix such as
 [cibuildwheel](https://cibuildwheel.pypa.io/).
 
 ## License

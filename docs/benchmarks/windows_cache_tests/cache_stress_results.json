@@ -4,7 +4,7 @@
     "python": "3.12.8",
     "sqlite": "3.45.3",
     "os": "Windows-11-10.0.26300-SP0",
-    "measured_at": "2026-10-13T16:11:37.854307+00:00",
+    "measured_at": "2026-10-14T15:42:44.600293+00:00",
     "timing": "median end-to-end us/query; includes result materialization; fixture and cache warmup excluded",
     "sqlite_settings": "indexed covering equality lookup; default statement cache; cache_size=-97656",
     "sqlite_file": "warm OS/SQLite pages; reads only; no cold-disk or durable-write speed claim",
@@ -28,7 +28,7 @@
       "rename": 10
     },
     "rows_remaining": 10034,
-    "elapsed_seconds": 3.320943399998214,
+    "elapsed_seconds": 2.330096899997443,
     "maximum_accounted_bytes": 19160,
     "final_cache_info": {
       "max_bytes": 10000,
@@ -37,14 +37,17 @@
       "hits": 11689,
       "misses": 13379,
       "evictions": 5395,
-      "invalidations": 11057
+      "invalidations": 11057,
+      "cache_traversed_nodes": false,
+      "traversal_nodes_seen": 0,
+      "traversal_admissions": 0
     },
     "reload_agreement": true,
     "persisted_operations_timed_for_stress_only": true
   },
   "memory": {
     "queries": 520000,
-    "elapsed_seconds": 12.59909890000199,
+    "elapsed_seconds": 8.851940099993953,
     "snapshots": [
       {
         "stage": "fill 100 MB budget",
@@ -56,7 +59,10 @@
           "hits": 0,
           "misses": 220000,
           "evictions": 69850,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
         "traced_growth_bytes": 57491884,
         "traced_peak_bytes": 60637684
@@ -71,9 +77,12 @@
           "hits": 0,
           "misses": 320000,
           "evictions": 169850,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 57492632,
+        "traced_growth_bytes": 57492712,
         "traced_peak_bytes": 60637684
       },
       {
@@ -86,10 +95,13 @@
           "hits": 0,
           "misses": 420000,
           "evictions": 269850,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 57493316,
-        "traced_peak_bytes": 67979268
+        "traced_growth_bytes": 57493476,
+        "traced_peak_bytes": 67979484
       },
       {
         "stage": "shrink to 1 MB",
@@ -101,10 +113,13 @@
           "hits": 0,
           "misses": 420000,
           "evictions": 418499,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 585698,
-        "traced_peak_bytes": 67979268
+        "traced_growth_bytes": 585938,
+        "traced_peak_bytes": 67979484
       },
       {
         "stage": "churn at 1 MB",
@@ -116,10 +131,13 @@
           "hits": 0,
           "misses": 520000,
           "evictions": 518494,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 690976,
-        "traced_peak_bytes": 67979268
+        "traced_growth_bytes": 691296,
+        "traced_peak_bytes": 67979484
       },
       {
         "stage": "disable",
@@ -131,10 +149,13 @@
           "hits": 0,
           "misses": 520000,
           "evictions": 520000,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 3724,
-        "traced_peak_bytes": 67979268
+        "traced_growth_bytes": 4124,
+        "traced_peak_bytes": 67979484
       }
     ],
     "note": "tracemalloc Python allocations, not RSS; rows already resident are excluded; tracing affects timing"

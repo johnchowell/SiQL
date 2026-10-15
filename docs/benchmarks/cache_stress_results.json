@@ -4,16 +4,16 @@
     "python": "3.14.4",
     "sqlite": "3.46.1",
     "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
-    "measured_at": "2026-10-13T16:06:01.335403+00:00",
+    "measured_at": "2026-10-14T15:42:01.790238+00:00",
     "timing": "median end-to-end us/query; includes result materialization; fixture and cache warmup excluded",
     "sqlite_settings": "indexed covering equality lookup; default statement cache; cache_size=-97656",
     "sqlite_file": "warm OS/SQLite pages; reads only; no cold-disk or durable-write speed claim",
     "cache": "100000000 bytes; clear between runs; prewarm for repeated cases; cold trace has distinct keys",
+    "cache_info_note": "entry/byte counts are snapshots; hit/miss/eviction counters accumulate across modes and repeats",
     "queries": 3000,
     "repeats": 9,
     "seed": 84,
-    "result": "row IDs, ascending; SiQL row positions equal IDs in immutable speed fixtures",
-    "cache_info_note": "entry/byte counts are snapshots; hit/miss/eviction counters accumulate across modes and repeats"
+    "result": "row IDs, ascending; SiQL row positions equal IDs in immutable speed fixtures"
   },
   "mutations": {
     "steps": 10000,
@@ -28,7 +28,7 @@
       "rename": 10
     },
     "rows_remaining": 10034,
-    "elapsed_seconds": 1.0342290709995723,
+    "elapsed_seconds": 0.8570105749968207,
     "maximum_accounted_bytes": 19560,
     "final_cache_info": {
       "max_bytes": 10000,
@@ -37,14 +37,17 @@
       "hits": 11689,
       "misses": 13379,
       "evictions": 5397,
-      "invalidations": 11055
+      "invalidations": 11055,
+      "cache_traversed_nodes": false,
+      "traversal_nodes_seen": 0,
+      "traversal_admissions": 0
     },
     "reload_agreement": true,
     "persisted_operations_timed_for_stress_only": true
   },
   "memory": {
     "queries": 520000,
-    "elapsed_seconds": 5.713373904000036,
+    "elapsed_seconds": 4.925839125004131,
     "snapshots": [
       {
         "stage": "fill 100 MB budget",
@@ -56,10 +59,13 @@
           "hits": 0,
           "misses": 220000,
           "evictions": 73373,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 59332646,
-        "traced_peak_bytes": 62478454
+        "traced_growth_bytes": 59463814,
+        "traced_peak_bytes": 62609622
       },
       {
         "stage": "churn 1",
@@ -71,10 +77,13 @@
           "hits": 0,
           "misses": 320000,
           "evictions": 173373,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 59333378,
-        "traced_peak_bytes": 62478454
+        "traced_growth_bytes": 59464626,
+        "traced_peak_bytes": 62609622
       },
       {
         "stage": "churn 2",
@@ -86,10 +95,13 @@
           "hits": 0,
           "misses": 420000,
           "evictions": 273373,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 59334070,
-        "traced_peak_bytes": 69820286
+        "traced_growth_bytes": 59465398,
+        "traced_peak_bytes": 69951670
       },
       {
         "stage": "shrink to 1 MB",
@@ -101,10 +113,13 @@
           "hits": 0,
           "misses": 420000,
           "evictions": 418534,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 607020,
-        "traced_peak_bytes": 69820286
+        "traced_growth_bytes": 607260,
+        "traced_peak_bytes": 69951670
       },
       {
         "stage": "churn at 1 MB",
@@ -116,10 +131,13 @@
           "hits": 0,
           "misses": 520000,
           "evictions": 518530,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 712228,
-        "traced_peak_bytes": 69820286
+        "traced_growth_bytes": 712548,
+        "traced_peak_bytes": 69951670
       },
       {
         "stage": "disable",
@@ -131,10 +149,13 @@
           "hits": 0,
           "misses": 520000,
           "evictions": 520000,
-          "invalidations": 0
+          "invalidations": 0,
+          "cache_traversed_nodes": false,
+          "traversal_nodes_seen": 0,
+          "traversal_admissions": 0
         },
-        "traced_growth_bytes": 3792,
-        "traced_peak_bytes": 69820286
+        "traced_growth_bytes": 4192,
+        "traced_peak_bytes": 69951670
       }
     ],
     "note": "tracemalloc Python allocations, not RSS; rows already resident are excluded; tracing affects timing"

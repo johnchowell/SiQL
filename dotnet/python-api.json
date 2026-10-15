@@ -1,0 +1,481 @@
+{
+  "_demo.py": {
+    "main": "arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "controllers/interpreter.py": {
+    "Command": {
+      "strToOp:": "arguments(posonlyargs=[], args=[arg(arg='s', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "fromStr:": "arguments(posonlyargs=[], args=[arg(arg='s', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Result": {
+      "columns": "AnnAssign(target=Name(id='columns', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
+      "rows": "AnnAssign(target=Name(id='rows', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Any', ctx=Load()), ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
+      "rowcount": "AnnAssign(target=Name(id='rowcount', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Constant(value=0), simple=1)",
+      "message": "AnnAssign(target=Name(id='message', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value=''), simple=1)",
+      "__iter__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "to_dict:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__str__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Interpreter": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='database', annotation=BinOp(left=Name(id='Database', ctx=Load()), op=BitOr(), right=Name(id='str', ctx=Load())))], kwonlyargs=[arg(arg='file_access', annotation=Name(id='bool', ctx=Load()))], kw_defaults=[Constant(value=True)], defaults=[Constant(value='.')])",
+      "execute:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='query', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "executescript:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='script', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "run:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='statement', annotation=Name(id='Statement', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "controllers/parser.py": {
+    "QueryError": {},
+    "Token": {
+      "kind": "AnnAssign(target=Name(id='kind', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "value": "AnnAssign(target=Name(id='value', ctx=Store()), annotation=Name(id='Any', ctx=Load()), simple=1)",
+      "pos": "AnnAssign(target=Name(id='pos', ctx=Store()), annotation=Name(id='int', ctx=Load()), simple=1)"
+    },
+    "tokenize": "arguments(posonlyargs=[], args=[arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "Expr": {
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Column": {
+      "name": "AnnAssign(target=Name(id='name', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Literal": {
+      "value": "AnnAssign(target=Name(id='value', ctx=Store()), annotation=Name(id='Any', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Compare": {
+      "left": "AnnAssign(target=Name(id='left', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "op": "AnnAssign(target=Name(id='op', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "right": "AnnAssign(target=Name(id='right', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "And": {
+      "items": "AnnAssign(target=Name(id='items', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Or": {
+      "items": "AnnAssign(target=Name(id='items', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Not": {
+      "item": "AnnAssign(target=Name(id='item', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "IsNull": {
+      "operand": "AnnAssign(target=Name(id='operand', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "negate": "AnnAssign(target=Name(id='negate', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "In": {
+      "operand": "AnnAssign(target=Name(id='operand', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "values": "AnnAssign(target=Name(id='values', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "negate": "AnnAssign(target=Name(id='negate', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Like": {
+      "operand": "AnnAssign(target=Name(id='operand', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "pattern": "AnnAssign(target=Name(id='pattern', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "negate": "AnnAssign(target=Name(id='negate', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "_regex": "AnnAssign(target=Name(id='_regex', ctx=Store()), annotation=Attribute(value=Name(id='re', ctx=Load()), attr='Pattern', ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='init', value=Constant(value=False)), keyword(arg='repr', value=Constant(value=False)), keyword(arg='compare', value=Constant(value=False))]), simple=1)",
+      "__post_init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "CreateTable": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "columns": "AnnAssign(target=Name(id='columns', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='Type', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), simple=1)",
+      "if_not_exists": "AnnAssign(target=Name(id='if_not_exists', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)"
+    },
+    "DropTable": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "if_exists": "AnnAssign(target=Name(id='if_exists', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)"
+    },
+    "AddColumn": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "column": "AnnAssign(target=Name(id='column', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "type": "AnnAssign(target=Name(id='type', ctx=Store()), annotation=Name(id='Type', ctx=Load()), simple=1)"
+    },
+    "DropColumn": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "column": "AnnAssign(target=Name(id='column', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "AlterColumn": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "column": "AnnAssign(target=Name(id='column', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "type": "AnnAssign(target=Name(id='type', ctx=Store()), annotation=Name(id='Type', ctx=Load()), simple=1)"
+    },
+    "Insert": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "columns": "AnnAssign(target=Name(id='columns', ctx=Store()), annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)",
+      "rows": "AnnAssign(target=Name(id='rows', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Any', ctx=Load()), ctx=Load()), ctx=Load()), simple=1)"
+    },
+    "Select": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "columns": "AnnAssign(target=Name(id='columns', ctx=Store()), annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)",
+      "count": "AnnAssign(target=Name(id='count', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "order": "AnnAssign(target=Name(id='order', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
+      "limit": "AnnAssign(target=Name(id='limit', ctx=Store()), annotation=BinOp(left=Name(id='int', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "offset": "AnnAssign(target=Name(id='offset', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Constant(value=0), simple=1)"
+    },
+    "Update": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "values": "AnnAssign(target=Name(id='values', ctx=Store()), annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='Any', ctx=Load())], ctx=Load()), ctx=Load()), simple=1)",
+      "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)"
+    },
+    "Delete": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)"
+    },
+    "ShowTables": {},
+    "Describe": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "RenameColumn": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "column": "AnnAssign(target=Name(id='column', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "new_name": "AnnAssign(target=Name(id='new_name', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "RenameTable": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "new_name": "AnnAssign(target=Name(id='new_name', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "CopyTable": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "new_name": "AnnAssign(target=Name(id='new_name', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "Truncate": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "Compact": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)"
+    },
+    "Use": {
+      "path": "AnnAssign(target=Name(id='path', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "ShowFiles": {},
+    "Import": {
+      "path": "AnnAssign(target=Name(id='path', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "Export": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "path": "AnnAssign(target=Name(id='path', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)"
+    },
+    "parse": "arguments(posonlyargs=[], args=[arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "Parser": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "tok:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "advance:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "error:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='message', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "is_kw:": "arguments(posonlyargs=[], args=[arg(arg='self')], vararg=arg(arg='words', annotation=Name(id='str', ctx=Load())), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "accept_kw:": "arguments(posonlyargs=[], args=[arg(arg='self')], vararg=arg(arg='words', annotation=Name(id='str', ctx=Load())), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "expect_kw:": "arguments(posonlyargs=[], args=[arg(arg='self')], vararg=arg(arg='words', annotation=Name(id='str', ctx=Load())), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "accept_op:": "arguments(posonlyargs=[], args=[arg(arg='self')], vararg=arg(arg='ops', annotation=Name(id='str', ctx=Load())), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "expect_op:": "arguments(posonlyargs=[], args=[arg(arg='self')], vararg=arg(arg='ops', annotation=Name(id='str', ctx=Load())), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "ident:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='what', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value='a name')])",
+      "idents:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='what', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "column_type:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "literal:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "whole_number:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "script:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "statement:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "path:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "where:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "expr:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "and_expr:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "not_expr:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "predicate:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "operand:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "controllers/shell.py": {
+    "main": "arguments(posonlyargs=[], args=[arg(arg='argv', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])"
+  },
+  "helpers/error_handler.py": {
+    "ErrorHandler": {
+      "__init__:": "arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "helpers/format.py": {
+    "box": "arguments(posonlyargs=[], args=[arg(arg='head', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load())), arg(arg='body', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "helpers/search.py": {
+    "_Node": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key'), arg(arg='height', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "PySkipList": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__iter__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "lane_keys:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='lane', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "get:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "get_with_trace:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "insert:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key'), arg(arg='cell_id', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "get_many:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='keys'), arg(arg='chained'), arg(arg='trace')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=True), Constant(value=False)])",
+      "remove:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key'), arg(arg='cell_id', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "py_scan": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load())), arg(arg='op', annotation=Name(id='int', ctx=Load())), arg(arg='value'), arg(arg='value_first', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=False)])",
+    "py_scan_match": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load())), arg(arg='fullmatch'), arg(arg='negate', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=False)])",
+    "py_values": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "helpers/types.py": {
+    "type_name": "arguments(posonlyargs=[], args=[arg(arg='t', annotation=Name(id='Type', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "type_from_name": "arguments(posonlyargs=[], args=[arg(arg='name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "managers/database.py": {
+    "Database": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value='.')])",
+      "file:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "tables:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__contains__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "table:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "create:": "arguments(posonlyargs=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load()))], args=[], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='columns'), defaults=[])",
+      "drop:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "rename:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='new_name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "copy:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='new_name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "managers/table_file.py": {
+    "table_file": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='Table', ctx=Load()), simple=1)",
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "diff:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Name(id='Table', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "models/cache.py": {
+    "cacheable": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "QueryCache": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='max_bytes')], kwonlyargs=[arg(arg='traversed_nodes')], kw_defaults=[Constant(value=False)], defaults=[Name(id='DEFAULT_CACHE_BYTES', ctx=Load())])",
+      "traversed_nodes:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "traversed_nodes:Attribute(value=Name(id='traversed_nodes', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='enabled')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "max_bytes:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "max_bytes:Attribute(value=Name(id='max_bytes', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='limit')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "get:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "put:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column'), arg(arg='value'), arg(arg='rows')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "invalidate:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "clear:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "models/diff.py": {
+    "DiffOp": {
+      "code": "AnnAssign(target=Name(id='code', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value=''), simple=1)",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "to_tuple:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "dumps:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "from_args:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls')], vararg=arg(arg='args'), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__eq__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='other')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__repr__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "AddCol": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='type', annotation=Name(id='Type', ctx=Load())), arg(arg='index', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "from_args:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls'), arg(arg='name'), arg(arg='stored_type'), arg(arg='index')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "DropCol": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "SetColType": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='type', annotation=Name(id='Type', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "from_args:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls'), arg(arg='name'), arg(arg='stored_type')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "RenameCol": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='new_name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "AddRow": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='index', annotation=Name(id='int', ctx=Load())), arg(arg='values', annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='Any', ctx=Load())], ctx=Load()), ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "DropRow": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='index', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "SetCell": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row', annotation=Name(id='int', ctx=Load())), arg(arg='col', annotation=Name(id='str', ctx=Load())), arg(arg='value', annotation=Name(id='Any', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "args:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "commit_line": "arguments(posonlyargs=[], args=[arg(arg='ops', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='DiffOp', ctx=Load()), ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "TableDiff": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='ops', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='DiffOp', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "__iter__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__len__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__bool__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__eq__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='other')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__repr__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__str__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "between:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls'), arg(arg='old', annotation=Constant(value='Table')), arg(arg='new', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "apply:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Constant(value='Table'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "dumps:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "loads:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls'), arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "write:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='fp', annotation=Name(id='TextIO', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "models/prefix.py": {
+    "prefix": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "PrefixGroup": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='signature'), arg(arg='symbols')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "invalidate:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table'), arg(arg='criteria')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "CompressedIndex": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "close:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "rebuild:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "add:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "remove:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "changed:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "ensure:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='criteria')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "integer_field": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "IntegerIndex": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "add:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "remove:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "close:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "ensure:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='criteria')], kwonlyargs=[arg(arg='seek')], kw_defaults=[Constant(value='under')], defaults=[])",
+      "info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "models/row.py": {
+    "RowStruct": {
+      "__iter__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__len__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])",
+      "add:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])",
+      "col:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load())))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Cell": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "value:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "value:Attribute(value=Name(id='value', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__str__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__repr__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Row": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='struct', annotation=Name(id='RowStruct', ctx=Load())), arg(arg='content')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "__str__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "col:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load())))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "append:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='item'), arg(arg='nv')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "models/table.py": {
+    "Table": {
+      "rows": "AnnAssign(target=Name(id='rows', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Row', ctx=Load()), ctx=Load()), simple=1)",
+      "cols": "AnnAssign(target=Name(id='cols', ctx=Store()), annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Cell', ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load()), simple=1)",
+      "struct": "AnnAssign(target=Name(id='struct', ctx=Store()), annotation=Name(id='RowStruct', ctx=Load()), simple=1)",
+      "index": "AnnAssign(target=Name(id='index', ctx=Store()), annotation=BinOp(left=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='ColumnTree', ctx=Load())], ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)",
+      "_file": "AnnAssign(target=Name(id='_file', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "entries:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='t', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Row', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[arg(arg='file'), arg(arg='tree', annotation=Name(id='bool', ctx=Load())), arg(arg='lazy_delete', annotation=Name(id='bool', ctx=Load())), arg(arg='cache_max_bytes', annotation=Name(id='int', ctx=Load())), arg(arg='cache_traversed_nodes', annotation=Name(id='bool', ctx=Load())), arg(arg='compressed_search', annotation=Name(id='bool', ctx=Load())), arg(arg='lazy_add', annotation=Name(id='bool', ctx=Load())), arg(arg='integer_search', annotation=Name(id='bool', ctx=Load()))], kw_defaults=[Constant(value=None), Constant(value=True), Constant(value=False), Name(id='DEFAULT_CACHE_BYTES', ctx=Load()), Constant(value=False), Constant(value=False), Constant(value=False), Constant(value=False)], defaults=[Constant(value=None)])",
+      "lazy_add:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "lazy_add:Attribute(value=Name(id='lazy_add', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='enabled')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "compressed_search:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "compressed_search:Attribute(value=Name(id='compressed_search', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='enabled')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "integer_search:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "integer_search:Attribute(value=Name(id='integer_search', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='enabled')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "integer_info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "compressed_info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "cache_traversed_nodes:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "cache_traversed_nodes:Attribute(value=Name(id='cache_traversed_nodes', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='enabled')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "cache_max_bytes:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "cache_max_bytes:Attribute(value=Name(id='cache_max_bytes', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='limit')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "cache_info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "clear_cache:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "tree:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "tree:Attribute(value=Name(id='tree', ctx=Load()), attr='setter', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='enabled', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "purge:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "save:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "compact:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "column:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load())))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__str__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "select:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='var'), arg(arg='col_name')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col_name', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load()))), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find_batch:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col_name'), arg(arg='values')], kwonlyargs=[arg(arg='order'), arg(arg='chained')], kw_defaults=[Constant(value='tree'), Constant(value=True)], defaults=[])",
+      "addCols:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])",
+      "find_where:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='criteria'), defaults=[])",
+      "editByName:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col'), arg(arg='where'), arg(arg='change')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "add:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])"
+    }
+  },
+  "models/tree.py": {
+    "tree_key": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "order_key": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "Branch": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='ordered', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "put:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row', annotation=Constant(value='Row')), arg(arg='cell', annotation=Constant(value='Cell'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "take:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='cell_id', annotation=Name(id='int', ctx=Load())), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "matching:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "ColumnTree": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[arg(arg='cache'), arg(arg='observe'), arg(arg='on_change')], kw_defaults=[Constant(value=None), Constant(value=True), Constant(value=None)], defaults=[])",
+      "dead:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "pending:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__len__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__getitem__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "add:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row', annotation=Constant(value='Row')), arg(arg='cell', annotation=Constant(value='Cell'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "queue_add:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row', annotation=Constant(value='Row')), arg(arg='cell', annotation=Constant(value='Cell'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "flush_pending:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='keys')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "remove:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='cell', annotation=Constant(value='Cell'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "bury:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='cell', annotation=Constant(value='Cell'))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "sweep:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "changed:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='cell', annotation=Constant(value='Cell')), arg(arg='old')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "clear_cache:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find_batch:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='values')], kwonlyargs=[arg(arg='order'), arg(arg='chained')], kw_defaults=[Constant(value='tree'), Constant(value=True)], defaults=[])"
+    }
+  },
+  "server/app.py": {
+    "_Reject": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='status', annotation=Name(id='HTTPStatus', ctx=Load())), arg(arg='message', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='extra'), defaults=[])"
+    },
+    "SiQLServer": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "_Handler": {
+      "server": "AnnAssign(target=Name(id='server', ctx=Store()), annotation=Name(id='SiQLServer', ctx=Load()), simple=1)",
+      "do_GET:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "do_POST:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "log_message:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='format')], vararg=arg(arg='args'), kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "serve": "arguments(posonlyargs=[], args=[arg(arg='config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "server/cli.py": {
+    "main": "arguments(posonlyargs=[], args=[arg(arg='argv', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])"
+  },
+  "server/config.py": {
+    "ServerConfig": {
+      "host": "AnnAssign(target=Name(id='host', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value='127.0.0.1'), simple=1)",
+      "port": "AnnAssign(target=Name(id='port', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Name(id='DEFAULT_PORT', ctx=Load()), simple=1)",
+      "data_dir": "AnnAssign(target=Name(id='data_dir', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value='data'), simple=1)",
+      "token": "AnnAssign(target=Name(id='token', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "max_body": "AnnAssign(target=Name(id='max_body', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=BinOp(left=Constant(value=1024), op=Mult(), right=Constant(value=1024)), simple=1)",
+      "log_level": "AnnAssign(target=Name(id='log_level', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value='INFO'), simple=1)",
+      "load:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls'), arg(arg='path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "__post_init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
+  },
+  "server/service.py": {
+    "systemd_unit": "arguments(posonlyargs=[], args=[arg(arg='config_path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[arg(arg='python', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='user', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='description', annotation=Name(id='str', ctx=Load()))], kw_defaults=[Constant(value=None), Constant(value=None), Constant(value='SiQL server')], defaults=[])"
+  }
+}

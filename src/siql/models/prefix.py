@@ -1,7 +1,9 @@
 """Interned per-column prefixes, hidden packed row signatures, and exact search inside groups."""
 import struct
+import bisect
 
 from .tree import ColumnTree, tree_key
+from ..helpers.search import scan, EQ
 
 
 def prefix(value):
@@ -183,3 +185,167 @@ class CompressedIndex:
                 'interned_signature_bytes': sum(len(s) for s in self.groups),
                 'group_column_trees': sum(len(g.trees) for g in self.groups.values()),
                 'last_candidate_groups': self.last_groups, 'last_candidate_rows': self.last_candidates}
+
+
+def integer_field(value):
+    """Canonical full-value bytes; equal builtins share bytes, unknown equality uses a wildcard."""
+    kind = type(value)
+    if value is None:
+        payload = b'\x00'
+    elif kind is str:
+        payload = b'\x01' + value.encode('utf-8', errors='surrogatepass')
+    elif kind in (int, bool, float):
+        try:
+            numerator, denominator = value.as_integer_ratio() if kind is float else (int(value), 1)
+        except (ValueError, OverflowError):
+            return None
+        try:
+            payload = b'\x02' + f'{numerator}/{denominator}'.encode('ascii')
+        except ValueError:
+            return None
+    elif kind in (bytes, bytearray):
+        payload = b'\x03' + bytes(value)
+    elif kind is memoryview:
+        try:
+            if value.ndim != 1 or value.itemsize != 1 or value.format not in ('B', 'b'):
+                return None
+            payload = b'\x03' + value.tobytes()
+        except ValueError:
+            return None
+    else:
+        return None
+    # A length prefix prevents trailing NUL bytes colliding when fixed-width slots are padded.
+    return len(payload).to_bytes(4, 'big') + payload
+
+
+class IntegerIndex(CompressedIndex):
+    """Full row bits ordered as one integer; biased seek plus exhaustive bounded backtracking."""
+    def __init__(self, table):
+        self.order_dirty = True
+        self.keys = []
+        self.ordered_groups = []
+        self.widths = self.minimums = self.maximums = self.averages = []
+        self.last_range = self.last_backtracked = self.last_seek = 0
+        super().__init__(table)
+
+    def _signature(self, row):
+        fields = tuple(integer_field(cell.value) for cell in row.content[:len(self.postings)])
+        return b''.join(field if field is not None else b'\0' * 4 for field in fields), fields
+
+    def add(self, row):
+        super().add(row)
+        self.order_dirty = True
+
+    def remove(self, row):
+        super().remove(row)
+        if hasattr(row, '_integer_signature'):
+            del row._integer_signature
+        self.order_dirty = True
+
+    def close(self):
+        for row in self.row_groups:
+            if hasattr(row, '_integer_signature'):
+                del row._integer_signature
+        super().close()
+        self.keys.clear()
+        self.ordered_groups.clear()
+        self.order_dirty = True
+
+    def _pack(self, values):
+        key = 0
+        for value, width in zip(values, self.widths):
+            key = (key << (8 * width)) | value
+        return key
+
+    def _field_code(self, field, position):
+        if field is None:
+            return 0
+        return int.from_bytes(field.ljust(self.widths[position], b'\0'), 'big')
+
+    def ensure(self):
+        super().ensure()
+        if not self.order_dirty:
+            return
+        groups = list(self.groups.values())
+        self.widths = [max([len(field) for field in postings if field is not None] + [4])
+                       for postings in self.postings]
+        codes = [tuple(self._field_code(field, i) for i, field in enumerate(group.symbols)) for group in groups]
+        count = len(self.row_groups)
+        self.minimums, self.maximums, self.averages = [], [], []
+        for i in range(len(self.widths)):
+            column = [code[i] for code in codes]
+            self.minimums.append(min(column, default=0))
+            self.maximums.append(max(column, default=0))
+            self.averages.append(sum(code[i] * len(group.rows) for code, group in zip(codes, groups)) // count
+                                 if count else 0)
+        ordered = sorted((self._pack(code), group) for code, group in zip(codes, groups))
+        self.keys = [key for key, _ in ordered]
+        self.ordered_groups = [group for _, group in ordered]
+        for key, group in ordered:
+            for row in group.rows:
+                row._integer_signature = key
+        self.order_dirty = False
+
+    def find(self, criteria, *, seek='under'):
+        if seek not in ('under', 'lower'):
+            raise ValueError("seek must be 'under' or 'lower'")
+        self.ensure()
+        lower, upper, guess, masks, desired = [], [], [], [], []
+        wildcard = set()
+        impossible = False
+        for i, column in enumerate(self.table.struct.column_names):
+            field = integer_field(criteria[column]) if column in criteria else None
+            if field is not None:
+                # Unknown query bits cannot match ordinary entries, but may match custom values.
+                if field not in self.postings[i]:
+                    impossible = True
+                wildcard.update(self.postings[i].get(None, ()))
+                code = self._field_code(field, i) if len(field) <= self.widths[i] else 0
+                lower.append(code)
+                upper.append(code)
+                guess.append(code)
+                masks.append((1 << (8 * self.widths[i])) - 1)
+                desired.append(code)
+            else:
+                lower.append(self.minimums[i])
+                upper.append(self.maximums[i])
+                # Mean encoded field minus a quarter of its observed range: deliberately aim low.
+                guess.append(max(self.minimums[i], self.averages[i] -
+                                 (self.maximums[i] - self.minimums[i]) // 4))
+                masks.append(0)
+                desired.append(0)
+        low, high = self._pack(lower), self._pack(upper)
+        self.last_seek = low if seek == 'lower' else max(low, min(high, self._pack(guess)))
+        selected = set(wildcard)
+        self.last_range = self.last_backtracked = 0
+        if not impossible:
+            begin = bisect.bisect_left(self.keys, low)
+            end = bisect.bisect_right(self.keys, high)
+            jump = max(begin, min(end, bisect.bisect_left(self.keys, self.last_seek)))
+            mask, wanted = self._pack(masks), self._pack(desired)
+            self.last_range = end - begin
+            self.last_backtracked = jump - begin
+            # Visit right from the estimate, then cover earlier matches that the estimate skipped.
+            for index in range(jump, end):
+                if self.keys[index] & mask == wanted:
+                    selected.add(self.ordered_groups[index].signature)
+            for index in range(jump - 1, begin - 1, -1):
+                if self.keys[index] & mask == wanted:
+                    selected.add(self.ordered_groups[index].signature)
+        rows = [row for signature in selected for row in self.groups[signature].rows]
+        self.last_groups, self.last_candidates = len(selected), len(rows)
+        for column, value in criteria.items():
+            cells = [row.col(column) for row in rows]
+            rows = [rows[i] for i in scan(cells, EQ, value, True)]
+            if not rows:
+                break
+        return rows
+
+    @property
+    def info(self):
+        details = super().info
+        details.update(mode='integer', integer_bits=sum(self.widths) * 8,
+                       row_signature_width=sum(self.widths),
+                       last_range_groups=self.last_range, last_backtracked_groups=self.last_backtracked,
+                       last_seek_integer=self.last_seek)
+        return details
