@@ -157,7 +157,16 @@ public sealed class SkipList<T> where T : notnull
         }
         return path;
     }
-    public IReadOnlyCollection<T> Get(OrderKey key) => GetWithTrace(key, false).Rows;
+    public IReadOnlyCollection<T> Get(OrderKey key)
+    {
+        // A read needs no predecessor array or traversal dictionary.
+        Node node = head;
+        for (int lane = Height - 1; lane >= 0; lane--)
+            while (node.Next[lane] is { } next && next.Key!.CompareTo(key) < 0)
+                node = next;
+        Node? found = node.Next[0];
+        return found is not null && found.Key!.CompareTo(key) == 0 ? found.Ids : Array.Empty<T>();
+    }
     public (IReadOnlyCollection<T> Rows, Dictionary<OrderKey, HashSet<T>> Trace) GetWithTrace(OrderKey key, bool trace = true)
     {
         var visited = new Dictionary<OrderKey, HashSet<T>>();

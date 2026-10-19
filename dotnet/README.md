@@ -95,5 +95,6 @@ fixtures, runs .NET, then reads C#-written files back in Python. It compares 281
 2,800 mutation steps across seven modes, 100 exact diff sequences, literal round-trips, and
 the actual packed integer keys. CI runs these alongside the unchanged Python tests on Windows
 and Linux. Fixtures demonstrate agreement for tested cases, not a proof about every possible
-program. See [PARITY.md](PARITY.md) for the feature map. Root README performance graphs describe
-Python/C++ and must not be interpreted as C# measurements.
+program. See [PARITY.md](PARITY.md) for the feature map. The
+[CRUD review](../docs/CRUD_PERFORMANCE.md) includes separate C# before/after measurements.
+The older Python/C++ graphs must not be interpreted as C# measurements.

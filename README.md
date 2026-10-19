@@ -42,8 +42,44 @@ The standalone C# port targets .NET 8 or later and needs no Python runtime. Buil
 It includes the table and diff APIs, existing file format, search modes, rolling cache,
 SQL interpreter, CSV, HTTP server, and command-line tools. Shared fixtures compare Python
 and C# behavior and bidirectional files. See the [.NET usage guide](dotnet/README.md) and
-[feature/parity map](dotnet/PARITY.md). The performance graphs below measure Python/C++,
-not the C# port.
+[feature/parity map](dotnet/PARITY.md). The CRUD review below includes separately
+measured C# results; the older benchmark sections measure Python/C++.
+
+## CRUD performance review
+
+The 2026-10-16 review retains row-position maps across eager deletes in both runtimes,
+avoids Python's redundant parsing of ordinary commit values, and reduces C# comparison
+and lookup allocations. Features, defaults, immediate saving, and exact results are preserved.
+
+![CRUD before and after at 50,000 rows](docs/benchmarks/crud_review/comparison.svg)
+
+<!-- CRUD_REVIEW_START -->
+
+| Runtime | Operation | Before (µs/op) | After (µs/op) | Before / after |
+|---|---|---:|---:|---:|
+| Native Python | Create | 619.60 | 513.23 | 1.21× |
+| Native Python | Read (str) | 8.06 | 7.16 | 1.13× |
+| Native Python | Read (int) | 7.73 | 6.81 | 1.14× |
+| Native Python | Update | 684.10 | 487.65 | 1.40× |
+| Native Python | Delete + lookup | 9,576.99 | 693.46 | 13.81× |
+| Native Python | Batch create | 43.00 | 17.02 | 2.53× |
+| C# / .NET 8 | Create | 452.02 | 423.17 | 1.07× |
+| C# / .NET 8 | Read (str) | 8.45 | 6.52 | 1.30× |
+| C# / .NET 8 | Read (int) | 7.99 | 3.32 | 2.41× |
+| C# / .NET 8 | Update | 363.59 | 396.75 | 0.92× |
+| C# / .NET 8 | Delete + lookup | 4,789.30 | 429.05 | 11.16× |
+| C# / .NET 8 | Batch create | 13.75 | 7.90 | 1.74× |
+
+<!-- CRUD_REVIEW_END -->
+
+Five runs per runtime/version on Windows, 50,000 rows, 500 probes, caching disabled.
+Reads use an already-built position map; individual writes save each operation;
+bulk insertion saves one change. These are sequential development-machine measurements,
+so small differences can reflect noise. C# single-row updates were about 9% slower in this run;
+the changes do not improve every operation. The [methods review and raw samples](docs/CRUD_PERFORMANCE.md)
+explain the changes, remaining costs, validation, and reproduction commands.
+The benchmark sections farther below retain their dated 2026-10-14 measurements,
+which predate these changes.
 
 ## Command line
 ```
@@ -428,8 +464,8 @@ include batch sizes 8, 32, 128, and 512. Reproduce with `python benchmarks/batch
 `Table(lazy_delete=True)` (off by default) queues the tree's cleanup for deleted rows instead of doing it at once.
 The row still leaves `rows`, `cols` and the file immediately, so nothing else sees it. In the tree, each of its
 cells is queued under the branch it sits in; a search unlinks the queued cells of just the branches it reads, before
-reading them, so a lookup never sees a deleted row and never checks branches it doesn't need. Lookups also correct
-row positions for queued deletes instead of rebuilding the position map after every delete. The queue empties
+reading them, so a lookup never sees a deleted row and never checks branches it doesn't need. Both eager and lazy
+deletes now retain bounded position offsets instead of rebuilding the position map after every delete. The tree queue empties
 itself if it grows past the size of the table, and `table.purge()` empties it on demand. It can also be switched
 at any time with `table.lazy_delete = True`.
 
@@ -442,6 +478,8 @@ at shutdown: a process can exit, or be killed, with deletes still waiting, and t
 without those rows and builds the tree without them.
 
 #### Performance: tree off vs on vs lazy delete, and SQLite
+These dated measurements predate the [2026-10-16 CRUD improvements](#crud-performance-review).
+
 Each operation was timed on tables of 1,000, 10,000 and 50,000 rows (`name` = random 8-letter string,
 `n` = row number), with 300 operations of each kind, taking the median of 3 runs. SiQL ran with all
 implementation modules compiled to C++ and the C search engine enabled, with result caching disabled.
@@ -489,7 +527,8 @@ These measurements show:
   reuse it. These are workload averages, not measurements of warmed-up lookups alone.
 - At 50,000 rows, lazy deletes take 54.0 µs versus
   4,104.3 µs with the plain tree, a 76.0×
-  improvement. The plain tree rebuilds its position map after each deletion in this workload.
+  improvement in that snapshot. The plain tree rebuilt its position map after each deletion then;
+  the current implementation retains bounded offsets for eager deletes too.
 
 #### Native C++ compared with the same Python source
 The current maintained source was run as interpreted Python and as compiled C++ on the same

@@ -165,7 +165,8 @@ public sealed class Table
         composite?.Remove(row);
         if (positions is not null)
         {
-            if (LazyDelete && deleted.Count < rows.Count / 4 + 64)
+            // Position offsets are independent of eager/lazy tree cleanup.
+            if (deleted.Count < rows.Count / 4 + 64)
             {
                 int p = positions[row];
                 positions.Remove(row);
