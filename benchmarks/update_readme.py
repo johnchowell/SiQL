@@ -52,6 +52,9 @@ def measured_date(meta):
 date = measured_date(meta)
 
 section = f'''#### Performance: tree off vs on vs lazy delete, and SQLite
+This is a dated snapshot; see the separate [CRUD methods review](#crud-performance-review)
+for the before/after experiment and its implementation changes.
+
 Each operation was timed on tables of 1,000, 10,000 and 50,000 rows (`name` = random 8-letter string,
 `n` = row number), with 300 operations of each kind, taking the median of 3 runs. SiQL ran with all
 implementation modules compiled to C++ and the C search engine enabled, with result caching disabled.
@@ -83,7 +86,8 @@ These measurements show:
   reuse it. These are workload averages, not measurements of warmed-up lookups alone.
 - At 50,000 rows, lazy deletes take {current['lazy']['Delete']:.1f} µs versus
   {current['on']['Delete']:,.1f} µs with the plain tree, a {current['on']['Delete'] / current['lazy']['Delete']:.1f}×
-  improvement. The plain tree rebuilds its position map after each deletion in this workload.
+  ratio for this snapshot. See the CRUD review for the change that lets eager deletes retain
+  bounded position offsets too.
 
 #### Native C++ compared with the same Python source
 The current maintained source was run as interpreted Python and as compiled C++ on the same

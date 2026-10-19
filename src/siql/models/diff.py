@@ -1,4 +1,5 @@
 import ast
+import math
 from difflib import SequenceMatcher
 from typing import Any, Type, TextIO, Self, TYPE_CHECKING
 
@@ -7,6 +8,29 @@ from ..helpers.types import type_name, type_from_name
 # table.py imports this module, so Table is only imported for type checking here
 if TYPE_CHECKING:
     from .table import Table
+
+
+def _literal_safe(value, depth=0):
+    """Prove common builtin reprs readable without constructing a second AST.
+
+    Subclasses/custom reprs, cycles, and deep containers retain the original
+    literal_eval validation. The depth cap also preserves parser nesting limits.
+    """
+    kind = type(value)
+    if kind is str or kind is int or kind is bool or kind is bytes or kind is type(None):
+        return True
+    if kind is float:
+        return math.isfinite(value)
+    if kind is complex:
+        return math.isfinite(value.real) and math.isfinite(value.imag)
+    if depth >= 16:
+        return False
+    if kind is tuple or kind is list or kind is set:
+        return all(_literal_safe(item, depth + 1) for item in value)
+    if kind is dict:
+        return all(_literal_safe(k, depth + 1) and _literal_safe(v, depth + 1)
+                   for k, v in value.items())
+    return False
 
 
 class DiffOp():
@@ -25,7 +49,11 @@ class DiffOp():
 
     def dumps(self) -> str:
         """One line of the table file. Raises TypeError if a value can't be read back."""
-        line = repr(self.to_tuple())
+        values = self.to_tuple()
+        safe = _literal_safe(values)
+        line = repr(values)
+        if safe:
+            return line + "\n"
         try:
             ast.literal_eval(line)
         except (ValueError, SyntaxError):
@@ -151,7 +179,11 @@ def commit_line(ops: list[DiffOp]) -> str:
     """
     if len(ops) == 1:
         return ops[0].dumps()
-    line = repr([op.to_tuple() for op in ops])
+    values = [op.to_tuple() for op in ops]
+    safe = _literal_safe(values)
+    line = repr(values)
+    if safe:
+        return line + "\n"
     try:
         ast.literal_eval(line)
     except (ValueError, SyntaxError):
