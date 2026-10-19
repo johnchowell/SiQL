@@ -36,3 +36,8 @@ CLR types/exceptions, assembly layout, launcher syntax, allocation sizes, and th
 the Python GIL are runtime differences. Search defaults, file/data semantics, SQL, and feature
 switches are shared. Python classes are not CLR classes; applications supply native CLR values
 and custom `Equals` implementations rather than Python callbacks.
+
+The [CRUD methods review](../docs/CRUD_PERFORMANCE.md) documents the shared deletion-offset
+optimization and runtime-specific serialization/comparison improvements. Regressions cover
+eager cleanup, offset rebuilds, append/middle insert, rollback, exact mixed numeric comparison,
+and Unicode scalar ordering. Existing feature switches and file semantics remain shared.

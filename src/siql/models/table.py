@@ -54,7 +54,7 @@ class Table():
         self.lazy_delete = lazy_delete
         self.lazy_add = lazy_add
         self._positions = None  # id(row) -> position when the map was built, used by `find`
-        self._deleted = []  # sorted map positions of rows deleted since then (the lazy delete queue)
+        self._deleted = []  # sorted map positions removed since then, independent of tree cleanup
         self._file = (file if file is not None else f"{uuid.uuid4().hex}.siql")
         self._buffer = io.StringIO()
 
@@ -227,7 +227,9 @@ class Table():
             self._compressed_index.remove(row)
         if self._positions is None:
             pass
-        elif self.lazy_delete and len(self._deleted) < len(self.rows) // 4 + 64:
+        elif len(self._deleted) < len(self.rows) // 4 + 64:
+            # Position offsets are independent of tree cleanup. Retain the map for
+            # eager deletes too, instead of rebuilding all row positions per lookup.
             bisect.insort(self._deleted, self._positions.pop(id(row)))
         elif index == len(self.rows) and not self._deleted:
             del self._positions[id(row)]

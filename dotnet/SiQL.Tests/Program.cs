@@ -15,6 +15,57 @@ Directory.CreateDirectory(temporary);
 try
 {
     string NewFile() => Path.Combine(temporary, Guid.NewGuid().ToString("N") + ".siql");
+    // Fast primitive comparisons must retain Python's Unicode/numeric boundaries.
+    Assert(Values.Compare("\U00010000", "\ue000") > 0, "Unicode scalar order above BMP");
+    Assert(Values.Compare("\ud800", "\U00010000") < 0, "unpaired surrogate order");
+    Assert(Values.Compare("same", "same-longer") < 0, "string prefix order");
+    Assert(!Values.Equal(double.NaN, double.NaN), "NaN never equals itself");
+    Assert(Values.Equal(-0.0, 0.0), "signed zero equality");
+    Assert(Values.Compare(long.MinValue, long.MaxValue) < 0, "signed integer limits");
+    Assert(Values.Compare(ulong.MaxValue, long.MaxValue) > 0, "mixed unsigned integer limits");
+    Assert(Values.Compare(9007199254740993L, 9007199254740992d) > 0, "mixed comparison retains precision");
+    Assert(!Values.Equal(9007199254740993L, 9007199254740992d), "mixed equality retains precision");
+    Assert(Values.Equal(1, true) && Values.Equal(1L, 1d), "numeric equivalence across types");
+    try { Values.Compare(double.NaN, 1d); throw new Exception("NaN ordered"); }
+    catch (ArgumentException) { }
+    foreach (long budget in new long[] { 0, 100_000_000 })
+    {
+        var offsets = new Table(file: NewFile(), cacheMaxBytes: budget);
+        offsets.AddCols(new Dictionary<string, ColumnType> { ["n"] = ColumnType.Int });
+        var expected = Enumerable.Range(0, 600).ToList();
+        new TableDiff(expected.Select(i => (DiffOp)new AddRow(i, new Dictionary<string, object?> { ["n"] = i }))).Apply(offsets);
+        offsets.Find("n", 0);
+        var rng = new Random(42);
+        for (int step = 0; step < 450; step++)
+        {
+            int position = rng.Next(expected.Count);
+            new TableDiff([new DropRow(position)]).Apply(offsets);
+            expected.RemoveAt(position);
+            if (step % 7 == 0)
+            {
+                offsets.Add(new Dictionary<string, object?> { ["n"] = 1000 + step });
+                expected.Add(1000 + step);
+            }
+            if (step % 13 == 0)
+            {
+                string saved = File.ReadAllText(offsets.FilePath);
+                try
+                {
+                    new TableDiff([new DropRow(-1), new AddRow(0, new Dictionary<string, object?> { ["absent"] = 1 })]).Apply(offsets);
+                    throw new Exception("Expected rollback failure");
+                }
+                catch (KeyNotFoundException) { }
+                Assert(File.ReadAllText(offsets.FilePath) == saved, "offset rollback leaves file unchanged");
+            }
+            int probe = rng.Next(expected.Count);
+            Equal(offsets.Find("n", expected[probe]), new[] { probe }, "offset lookup after eager delete/append");
+        }
+        Assert(offsets.Index!["n"].Dead.Count == 0, "eager cleanup stays immediate");
+        new TableDiff([new AddRow(1, new Dictionary<string, object?> { ["n"] = -1 })]).Apply(offsets);
+        expected.Insert(1, -1);
+        Equal(offsets.FindBatch("n", expected.Cast<object?>()), Enumerable.Range(0, expected.Count).Select(i => new[] { i }).ToList(), "offset reset after middle insert");
+        Equal(new Table(file: offsets.FilePath).Rows.Select(r => r.Col("n").Value).ToList(), expected, "offset persistence");
+    }
     var structure = new RowStruct(new Dictionary<string, ColumnType> { { "x", ColumnType.Any } });
     var initialRow = new Row(structure, new object?[] { 1 });
     var initialTable = new Table(new[] { initialRow }, file: NewFile());

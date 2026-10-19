@@ -44,7 +44,12 @@ public static class Values
         if (value is BigInteger bi)
             return (bi, 1);
         if (value is not double and not float)
-            return (BigInteger.Parse(Convert.ToString(value, CultureInfo.InvariantCulture)!), 1);
+            return (value switch
+            {
+                byte number => number, sbyte number => number, short number => number, ushort number => number,
+                int number => number, uint number => number, long number => number, ulong number => number,
+                _ => BigInteger.Parse(Convert.ToString(value, CultureInfo.InvariantCulture)!)
+            }, 1);
         double d = Convert.ToDouble(value, CultureInfo.InvariantCulture);
         if (!double.IsFinite(d))
             throw new ArgumentException("Nonfinite number has no rational encoding");
@@ -66,6 +71,12 @@ public static class Values
     }
     public static bool Equal(object? left, object? right)
     {
+        // Native comparisons preserve exactness for matching primitive types.
+        // Mixed integer/float comparisons still use rational arithmetic below.
+        if (left is int i && right is int j) return i == j;
+        if (left is long l && right is long r) return l == r;
+        if (left is double d && right is double e) return d == e;
+        if (left is string s && right is string t) return s == t;
         static bool Builtin(object value) => Numeric(value) || value is string or byte[] or Complex or LiteralTuple or IList or IDictionary or HashSet<object?>;
         if (left is not null && !Builtin(left))
             return left.Equals(right);
@@ -121,6 +132,14 @@ public static class Values
     static bool SequenceEqual(IEnumerable<object?> a, IEnumerable<object?> b) => a.Zip(b, Equal).All(x => x) && a.Count() == b.Count();
     public static int Compare(object? left, object? right)
     {
+        if (left is int aInt && right is int bInt) return aInt.CompareTo(bInt);
+        if (left is long aLong && right is long bLong) return aLong.CompareTo(bLong);
+        if (left is double aDouble && right is double bDouble)
+        {
+            if (double.IsNaN(aDouble) || double.IsNaN(bDouble))
+                throw new ArgumentException("NaN cannot be ordered");
+            return aDouble.CompareTo(bDouble);
+        }
         if (Numeric(left) && Numeric(right))
         {
             double? ld = left is double or float ? Convert.ToDouble(left) : null, rd = right is double or float ? Convert.ToDouble(right) : null;
@@ -136,17 +155,21 @@ public static class Values
         }
         if (left is string l && right is string r)
         {
-            var a = CodePoints(l).GetEnumerator();
-            var b = CodePoints(r).GetEnumerator();
-            while (true)
+            // Compare Unicode scalar values without allocating two iterators.
+            // Ordinal UTF-16 comparison alone would misorder supplementary text.
+            int x = 0, y = 0;
+            while (x < l.Length && y < r.Length)
             {
-                bool x = a.MoveNext(), y = b.MoveNext();
-                if (!x || !y)
-                    return x.CompareTo(y);
-                int c = a.Current.CompareTo(b.Current);
+                int a = l[x++], b = r[y++];
+                if (char.IsHighSurrogate((char)a) && x < l.Length && char.IsLowSurrogate(l[x]))
+                    a = char.ConvertToUtf32((char)a, l[x++]);
+                if (char.IsHighSurrogate((char)b) && y < r.Length && char.IsLowSurrogate(r[y]))
+                    b = char.ConvertToUtf32((char)b, r[y++]);
+                int c = a.CompareTo(b);
                 if (c != 0)
                     return c;
             }
+            return (x < l.Length).CompareTo(y < r.Length);
         }
         if (left is byte[] lb && right is byte[] rb)
             return lb.AsSpan().SequenceCompareTo(rb);
