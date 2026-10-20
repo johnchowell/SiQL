@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [master]
     types: [opened, synchronize, reopened]
+  # Give the badge its first value when this workflow lands on master.
   push:
     branches: [master]
     paths: [.github/workflows/pr-build-number.yml]
