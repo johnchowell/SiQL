@@ -49,5 +49,5 @@ version = { attr = "siql.__version__" }
 where = ["src"]
 exclude = ["siql.tests", "siql.tests.*"]
 
-# setup.py builds every implementation module as a C++ extension, plus the C search engine.
+# setup.py builds the Cython implementation, C search engine, and standalone C++ scalar core.
 # Wheels target the compiling CPython version and platform.

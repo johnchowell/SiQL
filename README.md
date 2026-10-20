@@ -5,21 +5,21 @@
 This Python library is intended to make data access and usage simpler with single calls and query chains
 
 ## Installation
-Requires CPython 3.11+. No third-party runtime dependencies. All implementation modules compile to C++
-extensions using Cython; searching also uses the C engine. Wheels contain native extensions for their Python
+Requires CPython 3.11+. No third-party runtime dependencies. Python implementation modules compile to C++
+extensions using Cython; searching also uses a handwritten C extension. Wheels contain CPython extensions for their Python
 version and platform. Building from source requires a C/C++ compiler (MSVC on Windows, GCC or Clang on Linux/macOS).
 ```
 pip install SiQL
 ```
 
-For a local native build and the existing test suite:
+For a local CPython extension build and the existing test suite:
 ```
 python -m pip install -e .
 python -m unittest discover -s src/siql/tests -t src -v
 python -m build
 ```
 
-`python tools/check_native.py` verifies every implementation loaded as an extension.
+`python tools/check_native.py` verifies that the existing modules load as compiled CPython extensions.
 `python tools/test_wheel.py dist/<wheel-filename>.whl` installs a wheel into a temporary directory and runs
 the same tests against that installed distribution.
 
@@ -33,6 +33,41 @@ algorithms for comparison; those algorithms also run as compiled C++ in the nati
 SiQL has three layers. Use only the ones you need: `import siql` loads just the library, the
 interpreter loads the first time it's used, and the server only when you import `siql.server`.
 
+## Standalone C++ core (in progress)
+
+The [new handwritten C++ core](native/README.md) compiles without Python or .NET
+and ships in the Python wheel with a thin `siql.native.NativeTable` adapter. It currently handles scalar CRUD,
+exact indexes, and compatible `.siql` log records. It does not yet cover the full
+Python/C# feature set, so `siql.Table` still uses the Cython implementation.
+
+The graph compares the current core through its Python adapter, the existing
+Python/Cython table, and indexed SQLite on the same scalar CRUD fixture.
+It is a **subset comparison**, not evidence that the whole library has moved to C++.
+
+![Standalone C++ scalar CRUD versus Python/Cython and SQLite](docs/benchmarks/native_core_results.svg)
+
+<!-- NATIVE_CORE_RESULTS_START -->
+
+| Operation | C++ via ctypes (µs) | Python/Cython (µs) | Indexed SQLite (µs) |
+|---|---:|---:|---:|
+| Create | 465.1 | 533.0 | 63.8 |
+| Read (str) | 6.9 | 9.1 | 8.4 |
+| Read (int) | 3.6 | 6.0 | 7.7 |
+| Update | 455.5 | 558.6 | 58.9 |
+| Delete + lookup | 469.3 | 791.0 | 91.3 |
+| Batch create | 2.4 | 16.6 | 1.4 |
+
+<!-- NATIVE_CORE_RESULTS_END -->
+
+At 50,000 rows the C++ path beat the existing Python/Cython path on all six measured
+scalar operations; indexed SQLite remained faster for individual writes. Measured
+on Windows 11 with Python 3.12.8 on 2026-10-19. Three runs per mode on fresh
+tables, caching disabled, 500 probes per phase;
+individual changes save immediately, while batch insert saves one transaction.
+SQLite uses WAL and `synchronous=OFF` with an index on both columns.
+[Raw samples](docs/benchmarks/native_core_results.json) and the
+[benchmark script](benchmarks/native_core.py) give the exact workload.
+
 ## .NET library
 
 The standalone C# port targets .NET 8 or later and needs no Python runtime. Build with
@@ -43,7 +78,7 @@ It includes the table and diff APIs, existing file format, search modes, rolling
 SQL interpreter, CSV, HTTP server, and command-line tools. Shared fixtures compare Python
 and C# behavior and bidirectional files. See the [.NET usage guide](dotnet/README.md) and
 [feature/parity map](dotnet/PARITY.md). The CRUD review below includes separately
-measured C# results; the older benchmark sections measure Python/C++.
+measured C# results; the older benchmark sections measure the Cython-compiled Python API.
 
 ## CRUD performance review
 
@@ -57,12 +92,12 @@ and lookup allocations. Features, defaults, immediate saving, and exact results 
 
 | Runtime | Operation | Before (µs/op) | After (µs/op) | Before / after |
 |---|---|---:|---:|---:|
-| Native Python | Create | 619.60 | 513.23 | 1.21× |
-| Native Python | Read (str) | 8.06 | 7.16 | 1.13× |
-| Native Python | Read (int) | 7.73 | 6.81 | 1.14× |
-| Native Python | Update | 684.10 | 487.65 | 1.40× |
-| Native Python | Delete + lookup | 9,576.99 | 693.46 | 13.81× |
-| Native Python | Batch create | 43.00 | 17.02 | 2.53× |
+| Python/Cython | Create | 619.60 | 513.23 | 1.21× |
+| Python/Cython | Read (str) | 8.06 | 7.16 | 1.13× |
+| Python/Cython | Read (int) | 7.73 | 6.81 | 1.14× |
+| Python/Cython | Update | 684.10 | 487.65 | 1.40× |
+| Python/Cython | Delete + lookup | 9,576.99 | 693.46 | 13.81× |
+| Python/Cython | Batch create | 43.00 | 17.02 | 2.53× |
 | C# / .NET 8 | Create | 452.02 | 423.17 | 1.07× |
 | C# / .NET 8 | Read (str) | 8.45 | 6.52 | 1.30× |
 | C# / .NET 8 | Read (int) | 7.99 | 3.32 | 2.41× |
@@ -530,16 +565,16 @@ These measurements show:
   improvement in that snapshot. The plain tree rebuilt its position map after each deletion then;
   the current implementation retains bounded offsets for eager deletes too.
 
-#### Native C++ compared with the same Python source
-The current maintained source was run as interpreted Python and as compiled C++ on the same
+#### Cython-compiled extensions compared with the same Python source
+The current maintained source was run as interpreted Python and as Cython-compiled C++ extensions on the same
 machine, using the same Python version, data, C search engine, and benchmark settings. The runs were
 sequential. The Python run uses an isolated source copy with the identical native C search extension.
 Speed-up is Python time divided by native time: above 1× is faster; below 1× is slower.
 
-![Current Python source and native C++ timings at 50,000 rows](docs/benchmarks/native_comparison.svg)
-![Speed-up from compiling the library to C++](docs/benchmarks/native_speedup.svg)
+![Current Python source and Cython-compiled extension timings at 50,000 rows](docs/benchmarks/native_comparison.svg)
+![Speed-up from compiling the existing Python source with Cython](docs/benchmarks/native_speedup.svg)
 
-| Operation | Python source, tree on (µs/op) | Native C++, tree on (µs/op) | Tree-on speed-up | Lazy-delete speed-up |
+| Operation | Python source, tree on (µs/op) | Cython extension, tree on (µs/op) | Tree-on speed-up | Lazy-delete speed-up |
 |---|---:|---:|---:|---:|
 | Create | 32.7 | 38.8 | 0.84× | 0.90× |
 | Read (str) | 22.7 | 24.2 | 0.94× | 1.01× |
@@ -590,7 +625,7 @@ delete, 6,610.6 µs with the plain tree, and
 2,189.1 µs without a tree. Lazy delete is
 59.4× faster than the plain tree for that workload.
 
-Measured on 2026-10-14 with SiQL 1.0.0 (native C++ modules and C search), SQLite 3.46.1,
+Measured on 2026-10-14 with SiQL 1.0.0 (Cython-compiled C++ modules and C search), SQLite 3.46.1,
 Python 3.14.4, Linux (WSL2), Intel Core Ultra 7 165U. Raw native numbers are in
 [results.json](docs/benchmarks/results.json); the same-machine Python baseline is in
 [results-python.json](docs/benchmarks/results-python.json). Run `python benchmarks/crud.py` for the full

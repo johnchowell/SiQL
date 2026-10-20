@@ -1,4 +1,4 @@
-"""Fail if any installed implementation is interpreted instead of native."""
+"""Check that the existing Cython modules load as compiled CPython extensions."""
 from importlib import import_module
 from importlib.machinery import ExtensionFileLoader
 
@@ -17,9 +17,9 @@ def main():
     for name in MODULES:
         module = import_module(f"siql.{name}")
         if not isinstance(module.__loader__, ExtensionFileLoader):
-            raise RuntimeError(f"{module.__name__} is not native: {module.__file__}")
+            raise RuntimeError(f"{module.__name__} is not a compiled extension: {module.__file__}")
         print(f"{module.__name__}: {module.__file__}")
-    print(f"Verified {len(MODULES)} native extensions")
+    print(f"Verified {len(MODULES)} compiled CPython extensions")
 
 
 if __name__ == "__main__":

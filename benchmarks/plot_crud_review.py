@@ -15,7 +15,7 @@ plt.rcParams.update({'svg.fonttype': 'none', 'font.size': 10,
                      'axes.spines.top': False, 'axes.spines.right': False})
 fig, axes = plt.subplots(1, 2, figsize=(12, 5.4), layout='constrained')
 rows = []
-for ax, (runtime, label) in zip(axes, [('python', 'Native Python'), ('dotnet', 'C# / .NET 8')]):
+for ax, (runtime, label) in zip(axes, [('python', 'Python/Cython'), ('dotnet', 'C# / .NET 8')]):
     before = data[runtime]['before']['results']['50000']['median_us']
     after = data[runtime]['after']['results']['50000']['median_us']
     for offset, phase, color in [(-.18, 'before', '#8996a5'), (.18, 'after', '#237c9e')]:

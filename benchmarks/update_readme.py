@@ -25,7 +25,7 @@ def table(headers, rows):
 crud = table(['Operation', 'Rows', 'Tree off (µs/op)', 'Tree on (µs/op)', 'Tree on + lazy delete (µs/op)',
               'SQLite (µs/op)', 'SQLite, indexed (µs/op)'],
              [[op, f'{int(s):,}'] + [f'{results[s][m][op]:,.1f}' for m in modes] for op in ops for s in sizes])
-comparison = table(['Operation', 'Python source, tree on (µs/op)', 'Native C++, tree on (µs/op)',
+comparison = table(['Operation', 'Python source, tree on (µs/op)', 'Cython extension, tree on (µs/op)',
                     'Tree-on speed-up', 'Lazy-delete speed-up'],
                    [[op, f'{old["on"][op]:,.1f}', f'{current["on"][op]:,.1f}',
                      f'{old["on"][op] / current["on"][op]:.2f}×',
@@ -89,14 +89,14 @@ These measurements show:
   ratio for this snapshot. See the CRUD review for the change that lets eager deletes retain
   bounded position offsets too.
 
-#### Native C++ compared with the same Python source
-The current maintained source was run as interpreted Python and as compiled C++ on the same
+#### Cython-compiled extensions compared with the same Python source
+The current maintained source was run as interpreted Python and as Cython-compiled C++ extensions on the same
 machine, using the same Python version, data, C search engine, and benchmark settings. The runs were
 sequential. The Python run uses an isolated source copy with the identical native C search extension.
 Speed-up is Python time divided by native time: above 1× is faster; below 1× is slower.
 
-![Current Python source and native C++ timings at 50,000 rows](docs/benchmarks/native_comparison.svg)
-![Speed-up from compiling the library to C++](docs/benchmarks/native_speedup.svg)
+![Current Python source and Cython-compiled extension timings at 50,000 rows](docs/benchmarks/native_comparison.svg)
+![Speed-up from compiling the existing Python source with Cython](docs/benchmarks/native_speedup.svg)
 
 {comparison}
 
@@ -132,7 +132,7 @@ delete, {pending['on']['Delete + read']:,.1f} µs with the plain tree, and
 {pending['off']['Delete + read']:,.1f} µs without a tree. Lazy delete is
 {pending['on']['Delete + read'] / pending['lazy']['Delete + read']:.1f}× faster than the plain tree for that workload.
 
-Measured on {date} with SiQL {meta['siql']} (native C++ modules and C search), SQLite {meta['sqlite']},
+Measured on {date} with SiQL {meta['siql']} (Cython-compiled C++ modules and C search), SQLite {meta['sqlite']},
 Python {meta['python']}, Linux (WSL2), Intel Core Ultra 7 165U. Raw native numbers are in
 [results.json](docs/benchmarks/results.json); the same-machine Python baseline is in
 [results-python.json](docs/benchmarks/results-python.json). Run `python benchmarks/crud.py` for the full
