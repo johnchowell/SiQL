@@ -1,0 +1,22 @@
+name: Pull request build number
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master]
+    paths: [.github/workflows/pr-build-number.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build-number:
+    name: Build ${{ github.run_number }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record the build number
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: echo "## Build ${BUILD_NUMBER}" >> "$GITHUB_STEP_SUMMARY"
