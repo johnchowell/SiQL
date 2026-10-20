@@ -1,5 +1,6 @@
 """Search tree for a Table, in layers: column name -> first character/digit of a value -> the cells holding it."""
 import numbers
+import os
 from typing import TYPE_CHECKING
 
 from ..helpers.search import SkipList
@@ -7,6 +8,8 @@ from .cache import cacheable
 
 if TYPE_CHECKING:
     from .row import Row, Cell
+
+_DIRECT_REFS = os.environ.get("SIQL_DIRECT_REFS", "1") != "0"
 
 
 def tree_key(value) -> str | None:
@@ -31,22 +34,64 @@ class Branch(dict):
     """One branch: `id(cell)` -> `(row, cell)` for every cell in it. String and number branches also keep their
     values in a SkipList, so a lookup can jump to a value; other values (None, lists, nan, ...) can't be ordered
     and are checked one by one."""
-    __slots__ = ("lanes",)
+    __slots__ = ("lanes", "_direct")
 
     def __init__(self, ordered: bool):
         super().__init__()
         self.lanes = SkipList() if ordered else None
+        self._direct = {} if ordered and _DIRECT_REFS else None
+
+    def _direct_put(self, row: "Row", cell: "Cell"):
+        if self._direct is None or not cacheable(cell.value):
+            return
+        key = cell.value
+        entry = self._direct.get(key)
+        if entry is None:
+            self._direct[key] = (cell, row)
+        elif isinstance(entry, dict):
+            entry[id(cell)] = row
+        elif entry[0] is cell:
+            self._direct[key] = (cell, row)
+        else:
+            self._direct[key] = {id(entry[0]): entry[1], id(cell): row}
+
+    def _direct_remove(self, cell: "Cell", value):
+        if self._direct is None or not cacheable(value):
+            return
+        key = value
+        entry = self._direct.get(key)
+        if isinstance(entry, dict):
+            entry.pop(id(cell), None)
+            if len(entry) == 1:
+                remaining_id, row = next(iter(entry.items()))
+                self._direct[key] = (self[remaining_id][1], row)
+            elif not entry:
+                del self._direct[key]
+        elif entry is not None and entry[0] is cell:
+            del self._direct[key]
+
+    def _direct_rows(self, value) -> list["Row"]:
+        entry = self._direct.get(value)
+        return list(entry.values()) if isinstance(entry, dict) else ([entry[1]] if entry is not None else [])
+
+    def _refresh(self, cell: "Cell", old):
+        """Keep the direct index current when a cell changes to an equal value."""
+        self._direct_remove(cell, old)
+        self._direct_put(self[id(cell)][0], cell)
 
     def put(self, row: "Row", cell: "Cell"):
         if self.lanes is not None and id(cell) not in self:
             self.lanes.insert(order_key(cell.value), id(cell))
         self[id(cell)] = (row, cell)
+        self._direct_put(row, cell)
 
     def take(self, cell_id: int, value) -> tuple["Row", "Cell"]:
         """Remove a cell that was filed under `value`."""
         if self.lanes is not None:
             self.lanes.remove(order_key(value), cell_id)
-        return self.pop(cell_id)
+        row, cell = self.pop(cell_id)
+        self._direct_remove(cell, value)
+        return row, cell
 
     def matching(self, value) -> list[tuple["Row", "Cell"]]:
         if self.lanes is None:
@@ -237,6 +282,8 @@ class ColumnTree():
             if old_key is not None and order_key(old) != order_key(new):
                 branch = self.branches[old_key]
                 branch.put(*branch.take(id(cell), old))
+            elif old_key is not None:
+                self.branches[old_key]._refresh(cell, old)
             return
         entry = self._take(old_key, id(cell), old)
         branch = self.branches.get(new_key)
@@ -284,14 +331,17 @@ class ColumnTree():
         # Unkeyed values (custom objects, nan, ...) live in the None branch and might still be equal
         self._live([key, None], purge_only=True)
         branch = self.branches.get(key)
-        if (branch is not None and self._cache is not None and self._cache.traversed_nodes
+        if (branch is not None and branch._direct is not None and not self._uncacheable
+                and cacheable(value) and not (self._cache is not None and self._cache.traversed_nodes)):
+            rows = branch._direct_rows(value)
+        elif (branch is not None and self._cache is not None and self._cache.traversed_nodes
                 and self._can_cache(value)):
             cell_ids, visited = branch.lanes.get_with_trace(order_key(value))
             self._remember_passed(branch, visited)
             rows = [branch[cell_id][0] for cell_id in cell_ids]
         else:
             rows = [row for row, _ in branch.matching(value)] if branch is not None else []
-        if None in self.branches:
+        if None in self.branches and (self._uncacheable or not cacheable(value)):
             rows += [row for row, _ in self.branches[None].matching(value)]
         return rows
 
@@ -315,9 +365,16 @@ class ColumnTree():
                 groups.setdefault(key, []).append(i)
         for branch_key, indices in groups.items():
             self._live([branch_key, None], purge_only=True)
+            branch = self.branches.get(branch_key)
+            direct = (branch is not None and branch._direct is not None and not self._uncacheable
+                      and all(cacheable(values[i]) for i in indices)
+                      and not (self._cache is not None and self._cache.traversed_nodes))
+            if direct:
+                for i in indices:
+                    out[i] = branch._direct_rows(values[i])
+                continue
             if order == "tree":
                 indices.sort(key=lambda i: order_key(values[i]))
-            branch = self.branches.get(branch_key)
             # Sorting a few sparse queries is useful for grouping, but a fresh seek can
             # cost less than finger maintenance across large gaps. Keep the cheap route.
             reuse = chained

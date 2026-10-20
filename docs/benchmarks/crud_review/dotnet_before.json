@@ -1,0 +1,114 @@
+{
+  "runtime": ".NET 8.0.32",
+  "platform": "Microsoft Windows 10.0.26300",
+  "utc": "2026-10-16T14:26:10.3127582+00:00",
+  "cache_bytes": 0,
+  "repeats": 5,
+  "queries": 500,
+  "results": {
+    "10000": {
+      "runs_us": [
+        {
+          "Create": 323.57624,
+          "Read (str)": 7.1306,
+          "Read (int)": 7.184,
+          "Update": 327.3844,
+          "Delete \u002B lookup": 1228.5262,
+          "Batch create": 11.32377
+        },
+        {
+          "Create": 337.8112,
+          "Read (str)": 3.9396,
+          "Read (int)": 5.002800000000001,
+          "Update": 295.7468,
+          "Delete \u002B lookup": 1058.459,
+          "Batch create": 11.799430000000001
+        },
+        {
+          "Create": 420.01429,
+          "Read (str)": 6.0566,
+          "Read (int)": 17.040599999999998,
+          "Update": 421.1254,
+          "Delete \u002B lookup": 1273.7916,
+          "Batch create": 12.93716
+        },
+        {
+          "Create": 495.14668,
+          "Read (str)": 8.2462,
+          "Read (int)": 5.6778,
+          "Update": 480.3804,
+          "Delete \u002B lookup": 1370.8802,
+          "Batch create": 14.21693
+        },
+        {
+          "Create": 590.69093,
+          "Read (str)": 9.6316,
+          "Read (int)": 24.6632,
+          "Update": 473.6536,
+          "Delete \u002B lookup": 1419.1298000000002,
+          "Batch create": 15.083429999999998
+        }
+      ],
+      "median_us": {
+        "Create": 420.01429,
+        "Read (str)": 7.1306,
+        "Read (int)": 7.184,
+        "Update": 421.1254,
+        "Delete \u002B lookup": 1273.7916,
+        "Batch create": 12.93716
+      }
+    },
+    "50000": {
+      "runs_us": [
+        {
+          "Create": 374.91578,
+          "Read (str)": 8.805200000000001,
+          "Read (int)": 7.8793999999999995,
+          "Update": 325.998,
+          "Delete \u002B lookup": 4197.4704,
+          "Batch create": 17.0157
+        },
+        {
+          "Create": 364.843296,
+          "Read (str)": 12.874,
+          "Read (int)": 7.9902,
+          "Update": 328.4134,
+          "Delete \u002B lookup": 3912.613,
+          "Batch create": 13.25623
+        },
+        {
+          "Create": 564.3383220000001,
+          "Read (str)": 8.4484,
+          "Read (int)": 7.4576,
+          "Update": 548.9774,
+          "Delete \u002B lookup": 6890.017599999999,
+          "Batch create": 17.207082
+        },
+        {
+          "Create": 453.629696,
+          "Read (str)": 5.6806,
+          "Read (int)": 13.96,
+          "Update": 380.3774,
+          "Delete \u002B lookup": 4969.057599999999,
+          "Batch create": 13.75454
+        },
+        {
+          "Create": 452.016578,
+          "Read (str)": 6.4281999999999995,
+          "Read (int)": 10.3188,
+          "Update": 363.5852,
+          "Delete \u002B lookup": 4789.300200000001,
+          "Batch create": 13.114294
+        }
+      ],
+      "median_us": {
+        "Create": 452.016578,
+        "Read (str)": 8.4484,
+        "Read (int)": 7.9902,
+        "Update": 363.5852,
+        "Delete \u002B lookup": 4789.300200000001,
+        "Batch create": 13.75454
+      }
+    }
+  }
+}

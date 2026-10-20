@@ -16,8 +16,17 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_installed(directory):
     sys.path.insert(0, directory)
     import siql
+    from siql.native import NativeTable
     assert Path(siql.__file__).resolve().is_relative_to(Path(directory).resolve())
     check_native()
+    with tempfile.TemporaryDirectory(prefix="siql-native-wheel-") as folder:
+        path = Path(folder) / "smoke.siql"
+        table = NativeTable(path)
+        table.add_column("value", "int")
+        table.append(value=7)
+        assert table.find("value", 7) == [0]
+        table.close()
+        assert siql.Table(file=str(path)).rows[0].col("value").value == 7
     # Extend only the top-level package to locate the original, unmodified tests.
     siql.__path__.append(str(ROOT / "src" / "siql"))
     suite = unittest.defaultTestLoader.discover(str(ROOT / "src" / "siql" / "tests"), top_level_dir=str(ROOT / "src"))
@@ -31,8 +40,16 @@ def main():
     wheel = Path(sys.argv[1]).resolve()
     with zipfile.ZipFile(wheel) as archive:
         native_modules = set()
+        library = "siql_native.dll" if os.name == "nt" else (
+            "libsiql_native.dylib" if sys.platform == "darwin" else "libsiql_native.so")
+        assert f"siql/{library}" in archive.namelist(), library
+        assert "siql/native.py" in archive.namelist()
+        assert not any(name.startswith("siql/siql_native.") and name.endswith((".lib", ".exp"))
+                       for name in archive.namelist())
         for name in archive.namelist():
             if name.startswith("siql/") and name.endswith((".pyd", ".so")):
+                if name == f"siql/{library}":
+                    continue
                 parts = name.split("/")[1:]
                 parts[-1] = parts[-1].split(".")[0]
                 native_modules.add(".".join(parts))

@@ -1,0 +1,35 @@
+name: Standalone C++ core
+
+on:
+  push:
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  native:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            library: build/native/libsiql_native.so
+          - os: windows-latest
+            library: build/native/Release/siql_native.dll
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python implementation for compatibility checks
+        run: python -m pip install -e .
+      - name: Build standalone C++ core
+        run: cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
+      - name: Build library and C++ checks
+        run: cmake --build build/native --config Release
+      - name: Run native checks
+        run: ctest --test-dir build/native -C Release --output-on-failure
+      - name: Check Python file compatibility on the native core
+        env:
+          SIQL_NATIVE_LIBRARY: ${{ matrix.library }}
+        run: python native/tests/cross_language.py -v

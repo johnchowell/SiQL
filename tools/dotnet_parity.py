@@ -20,7 +20,9 @@ def api_contract():
     """Require explicit .NET review when Python's public feature surface changes."""
     contract = {}
     for path in sorted((ROOT / 'src/siql').rglob('*.py')):
-        if 'tests' in path.parts:
+        # The standalone C++ adapter is a separate, scalar-only API. This
+        # contract tracks the established Python API mirrored by .NET.
+        if 'tests' in path.parts or path.name == 'native.py':
             continue
         entries = {}
         for node in ast.parse(path.read_text(encoding='utf-8')).body:

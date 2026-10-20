@@ -1,4 +1,4 @@
-"""Plot same-machine Python + C-search versus full native benchmark results."""
+"""Plot interpreted Python against the same source compiled with Cython."""
 import json
 
 from crud import OUT, OPS, bar_chart
@@ -19,16 +19,16 @@ def main():
     mode_labels = [("on", "tree on"), ("lazy", "lazy delete")]
     bar_chart(
         OUT / "native_comparison.svg",
-        f"Python vs native C++, {int(largest):,} rows (log scale, lower is better)", OPS,
+        f"Python vs Cython extensions, {int(largest):,} rows (log scale, lower is better)", OPS,
         [(f"{label}, {mode_label}", [data["results"][largest][mode][op] for op in OPS])
-         for data, label in ((python, "Python + C search"), (native, "Native C++"))
+         for data, label in ((python, "Python + C search"), (native, "Cython C++"))
          for mode, mode_label in mode_labels],
         "microseconds per operation", log=True,
         colors=["#9aa5b1", "#66717e", "#2b7bb9", "#e07b39"],
     )
     bar_chart(
         OUT / "native_speedup.svg",
-        f"Native speed-up, {int(largest):,} rows (Python time ÷ native time, higher is better)", OPS,
+        f"Cython speed-up, {int(largest):,} rows (Python time ÷ compiled time, higher is better)", OPS,
         [(label, [python["results"][largest][mode][op] / native["results"][largest][mode][op] for op in OPS])
          for mode, label in (("off", "tree off"), ("on", "tree on"), ("lazy", "tree on + lazy delete"))],
         "times faster", unit="ratio", ref=1.0,

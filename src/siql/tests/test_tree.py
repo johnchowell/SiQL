@@ -5,7 +5,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from ..models import Table, Row, RowStruct, TableDiff, AddCol, DropCol, RenameCol, AddRow, DropRow, SetCell, tree_key
+from ..models import (Table, Row, Cell, RowStruct, ColumnTree, TableDiff, AddCol, DropCol, RenameCol,
+                      AddRow, DropRow, SetCell, tree_key)
 from ..models.tree import order_key
 from ..helpers.search import PySkipList
 
@@ -198,6 +199,22 @@ class TreeTests(InTempDir):
         self.assertIs(row, t.rows[2])
         self.assertIs(cell, t.cols["name"][2])
         self.assertIs(cell, row.content[0])
+
+    def test_equal_values_in_unhashable_cell_subclasses(self):
+        class UnhashableCell(Cell):
+            __hash__ = None
+
+            def __eq__(self, other):
+                return self is other
+
+        struct = RowStruct(name=str)
+        first, second = Row(struct, [UnhashableCell("same")]), Row(struct, [UnhashableCell("same")])
+        tree = ColumnTree()
+        tree.add(first, first.col("name"))
+        tree.add(second, second.col("name"))
+        self.assertCountEqual(tree.find("same"), [first, second])
+        tree.remove(first.col("name"))
+        self.assertEqual(tree.find("same"), [second])
 
     def test_find_and_select(self):
         t = self.make()
