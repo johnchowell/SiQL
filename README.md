@@ -167,16 +167,16 @@ with the table. On a 30,000-row, two-column fixture with caching disabled, five 
 
 | Operation | Tree only | Direct references |
 |---|---:|---:|
-| Unique exact read (µs/query) | 5.80 | 1.85 |
-| Duplicate-value read (µs/query) | 66.43 | 17.99 |
-| Batch unique read (µs/query) | 2.29 | 0.75 |
-| Batch duplicate read (µs/query) | 33.20 | 17.28 |
-| Tree build (ms) | 1,485 | 1,570 |
-| Traced Python memory (MB) | 29.86 | 33.71 |
-| Index-only removal (µs/cell) | 1.09 | 1.53 |
+| Unique exact read (µs/query) | 4.42 | 1.83 |
+| Duplicate-value read (µs/query) | 66.10 | 17.58 |
+| Batch unique read (µs/query) | 2.63 | 0.82 |
+| Batch duplicate read (µs/query) | 34.55 | 16.68 |
+| Tree build (ms) | 1,534 | 1,635 |
+| Traced Python memory (MB) | 29.86 | 34.67 |
 
-These are cold exact reads; repeated queries may already hit the rolling cache. The memory increase was 3.85 MB
-(13%), and index-only removals took longer. Measurements were made on Windows with Python 3.12 on 2026-10-20;
+These are cold exact reads; repeated queries may already hit the rolling cache. The memory increase was 4.81 MB
+(16%) and tree build time rose about 7%. Index-only edit and removal timings varied across runs; the raw data
+includes them. Measurements were made on Windows with Python 3.12 on 2026-10-20;
 [raw runs](docs/benchmarks/tree_refs_results.json), the [benchmark](benchmarks/tree_refs.py), and the
 [chart generator](benchmarks/tree_refs_report.py) show the full method. The older graphs below retain their
 original measurement dates.

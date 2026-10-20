@@ -49,11 +49,11 @@ class Branch(dict):
         if entry is None:
             self._direct[key] = (cell, row)
         elif isinstance(entry, dict):
-            entry[cell] = row
+            entry[id(cell)] = row
         elif entry[0] is cell:
             self._direct[key] = (cell, row)
         else:
-            self._direct[key] = {entry[0]: entry[1], cell: row}
+            self._direct[key] = {id(entry[0]): entry[1], id(cell): row}
 
     def _direct_remove(self, cell: "Cell", value):
         if self._direct is None or not cacheable(value):
@@ -61,9 +61,10 @@ class Branch(dict):
         key = value
         entry = self._direct.get(key)
         if isinstance(entry, dict):
-            entry.pop(cell, None)
+            entry.pop(id(cell), None)
             if len(entry) == 1:
-                self._direct[key] = next(iter(entry.items()))
+                remaining_id, row = next(iter(entry.items()))
+                self._direct[key] = (self[remaining_id][1], row)
             elif not entry:
                 del self._direct[key]
         elif entry is not None and entry[0] is cell:
