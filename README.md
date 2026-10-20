@@ -148,13 +148,38 @@ joins that many "express lanes", placed by comparing it with the values already 
 sparsest lane and drops down, jumping over most of the branch, so it takes about log(n) comparisons instead of
 checking every value. Values that can't be ordered (`None`, lists, `nan`, ...) sit in their own branch and are checked
 one by one.
-`find`, `select`, `editByName` and the interpreter's `WHERE col = value` use it instead of scanning every row.
-It's kept current on every change, including direct `cell.value = ...` assignments, and rebuilt when a table loads.
+The rows and cells are already resident in memory for the table's lifetime. A second, direct reference map now
+connects each built-in scalar value to its matching row objects, avoiding the skip-list walk and cell-ID lookup
+for exact searches. The skip list remains for ordered operations, custom equality, and traversal-node caching.
+`find`, `select`, `editByName` and the interpreter's `WHERE col = value` use the index instead of scanning every row.
+The index stays current on every change, including direct `cell.value = ...` assignments, and is rebuilt when a table loads.
 ```python
 people.index["name"]["A"]                   # rows whose name starts with "A"
 people.find("name", "Ann")                  # indices of matching rows
 people.tree = False                         # discard the tree (set True to rebuild it)
 ```
+
+The direct map is enabled by default. Set `SIQL_DIRECT_REFS=0` before importing SiQL to compare the older
+skip-list lookup path. It is separate from the size-limited rolling query-result cache, and its memory grows
+with the table. On a 30,000-row, two-column fixture with caching disabled, five alternating runs measured:
+
+![Exact search with direct row references](docs/benchmarks/tree_refs.svg)
+
+| Operation | Tree only | Direct references |
+|---|---:|---:|
+| Unique exact read (µs/query) | 5.80 | 1.85 |
+| Duplicate-value read (µs/query) | 66.43 | 17.99 |
+| Batch unique read (µs/query) | 2.29 | 0.75 |
+| Batch duplicate read (µs/query) | 33.20 | 17.28 |
+| Tree build (ms) | 1,485 | 1,570 |
+| Traced Python memory (MB) | 29.86 | 33.71 |
+| Index-only removal (µs/cell) | 1.09 | 1.53 |
+
+These are cold exact reads; repeated queries may already hit the rolling cache. The memory increase was 3.85 MB
+(13%), and index-only removals took longer. Measurements were made on Windows with Python 3.12 on 2026-10-20;
+[raw runs](docs/benchmarks/tree_refs_results.json), the [benchmark](benchmarks/tree_refs.py), and the
+[chart generator](benchmarks/tree_refs_report.py) show the full method. The older graphs below retain their
+original measurement dates.
 
 #### Lazy additions (optional)
 `Table(lazy_add=True)` defers inserting new cells into the search tree's skip-list lanes. Rows,
@@ -173,8 +198,9 @@ people.lazy_add = False                    # finish pending additions and resume
 
 The option defaults to off and can be combined with `lazy_delete=True`. Pending cells still
 notify the index on direct edits; deleting an unindexed row cancels its pending insertion.
-Cached matches and misses are invalidated on insertion. Batch searches keep their normal chained
-traversal after indexing the needed branches. SQL scans already read the updated column lists.
+Cached matches and misses are invalidated on insertion. Batch searches use direct references for built-in
+scalar values, and keep chained traversal for the other indexed cases. SQL scans already read the updated
+column lists.
 Compressed multi-column searches keep their prefix membership current independently.
 
 To bound the queue, a column indexes all its pending additions when their count exceeds the larger
