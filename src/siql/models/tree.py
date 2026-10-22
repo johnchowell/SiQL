@@ -427,6 +427,56 @@ class ColumnTree():
                 return None
         return rows
 
+    def first(self, count, descending=False) -> list[tuple] | None:
+        """(value, rows) of the leading non-null values in sort order, covering at least `count` rows (all rows
+        when fewer). None when the lanes can't order the column: custom values, or numbers and strings together."""
+        if self._uncacheable:
+            return None
+        keys = [key for key in set(self.branches) | set(self._pending) if key is not None]
+        self._live(keys + [None], purge_only=True)
+        branches = {key: self.branches[key] for key in keys if key in self.branches}
+        unkeyed = self.branches.get(None)
+        # inf, -inf and huge ints have no first digit; None never sorts with the values
+        loose = {}
+        if unkeyed is not None and unkeyed._direct is not None:
+            loose = {value: unkeyed._direct_rows(value) for value in unkeyed._direct if value is not None}
+        elif unkeyed is not None:
+            for row, cell in unkeyed.values():
+                if cell.value is not None:
+                    loose.setdefault(cell.value, []).append(row)
+        loose = list(loose.items())
+        numbers = bool(loose) or any(key in _DIGITS and branch.lanes.nearest(None, 1)[0][0][0] == 0
+                                     for key, branch in branches.items())
+        strings = any(key not in _DIGITS or branch.lanes.nearest(None, 1, True)[0][0][0] == 1
+                      for key, branch in branches.items())
+        if numbers and strings:
+            return None
+        found = []
+        if numbers:
+            # First digits don't follow numeric order: take each branch's leading values, then merge them
+            for key, branch in branches.items():
+                if key in _DIGITS:
+                    walk = branch.lanes.nearest((1, "") if descending else None, count, descending, False)
+                    found += [(node_key[1], [branch[cell_id][0] for cell_id in cell_ids])
+                              for node_key, cell_ids in walk if node_key[0] == 0]
+            found += loose
+            found.sort(key=lambda entry: entry[0], reverse=descending)
+        else:
+            # Every string in a branch starts with its key, so branches in key order give the overall order
+            for key in sorted(branches, reverse=descending):
+                branch, held = branches[key], sum(len(rows) for _, rows in found)
+                if held >= count:
+                    break
+                walk = branch.lanes.nearest(None if descending else (1, ""), count - held, descending)
+                found += [(node_key[1], [branch[cell_id][0] for cell_id in cell_ids]) for node_key, cell_ids in walk]
+        out, held = [], 0
+        for value, rows in found:
+            if held >= count:
+                break
+            out.append((value, rows))
+            held += len(rows)
+        return out
+
     def find_batch(self, values, *, order="tree", chained=True):
         """Batch-local fingers per ordered branch; restore input order after scheduling queries."""
         if order not in ("tree", "input"):

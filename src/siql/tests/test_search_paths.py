@@ -64,6 +64,35 @@ class SkipListBetweenTests(unittest.TestCase):
                     if count:
                         self.assertIsNone(lanes.between(low, high, low_inclusive, high_inclusive, count - 1))
 
+    def test_nearest_walks_from_a_bound(self):
+        for SkipList in SKIP_LISTS:
+            with self.subTest(SkipList=SkipList):
+                rng = random.Random(9)
+                lanes, keys = SkipList(), {}
+                for cell_id in range(1500):
+                    key = order_key(rng.choice([rng.randrange(-200, 200), "".join(rng.choice("ab") for _ in range(3))]))
+                    lanes.insert(key, cell_id)
+                    keys.setdefault(key, set()).add(cell_id)
+                ordered = sorted(keys)
+                for _ in range(300):
+                    bound = rng.choice(ordered + [None, (0, 0.5), (1, "")])
+                    count, descending, inclusive = rng.randrange(0, 40), rng.random() < 0.5, rng.random() < 0.5
+                    if bound is None:
+                        start = ordered[::-1] if descending else ordered
+                    elif descending:
+                        start = [k for k in reversed(ordered) if k < bound or (inclusive and k == bound)]
+                    else:
+                        start = [k for k in ordered if k > bound or (inclusive and k == bound)]
+                    expected, total = [], 0
+                    for key in start:
+                        if total >= count:
+                            break
+                        expected.append((key, keys[key]))
+                        total += len(keys[key])
+                    self.assertEqual(lanes.nearest(bound, count, descending, inclusive), expected)
+                self.assertEqual(SkipList().nearest(None, 5, True), [])
+                self.assertEqual(SkipList().nearest((0, 1), 5), [])
+
     def test_between_empty_and_errors(self):
         for SkipList in SKIP_LISTS:
             with self.subTest(SkipList=SkipList):
@@ -309,21 +338,53 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(rows, self.reference(parse(query)[0].where))
         self.assertEqual(reads, [("id", 100, 120, True, False)])
 
+    def ordered(self, query):
+        select = parse(query)[0]
+        records = [{n: row.col(n).value for n in self.table.struct.column_names} for row in self.table.rows]
+        matched = [r for r in records if select.where is None or select.where.eval(r)]
+        for column, descending in reversed(select.order):
+            nulls = [r for r in matched if r[column] is None]
+            rest = sorted((r for r in matched if r[column] is not None), key=operator.itemgetter(column),
+                          reverse=descending)
+            matched = rest + nulls if descending else nulls + rest
+        end = None if select.limit is None else select.offset + select.limit
+        return [[r["id"]] for r in matched[select.offset:end]]
+
     def test_order_by_reads_matched_values(self):
         for query in ["SELECT id FROM t WHERE a = 3 ORDER BY c DESC, b LIMIT 4",
                       "SELECT id FROM t WHERE a >= 0 ORDER BY b, id DESC LIMIT 7 OFFSET 2",
                       "SELECT id FROM t ORDER BY c, a DESC"]:
             with self.subTest(query=query):
-                select = parse(query)[0]
-                records = [{n: row.col(n).value for n in self.table.struct.column_names} for row in self.table.rows]
-                matched = [r for r in records if select.where is None or select.where.eval(r)]
-                for column, descending in reversed(select.order):
-                    nulls = [r for r in matched if r[column] is None]
-                    rest = sorted((r for r in matched if r[column] is not None), key=operator.itemgetter(column),
-                                  reverse=descending)
-                    matched = rest + nulls if descending else nulls + rest
-                end = None if select.limit is None else select.offset + select.limit
-                self.assertEqual(self.db.execute(query).rows, [[r["id"]] for r in matched[select.offset:end]])
+                self.assertEqual(self.db.execute(query).rows, self.ordered(query))
+
+    def test_order_by_limit_walks_the_lanes(self):
+        cells = self.table.cols["c"]
+        cells[5].value, cells[6].value, cells[7].value = math.inf, -math.inf, True
+        self.table.cols["a"][9].value = -0.0
+        rng = random.Random(23)
+        for step in range(300):
+            if step % 3 == 0:
+                self.table.lazy_delete = self.table.lazy_add = step % 2 == 0
+                self.db.execute(f"DELETE FROM t WHERE id = {rng.randrange(400)}")
+                self.db.execute(f"INSERT INTO t VALUES ({400 + step}, {rng.choice(['NULL', '4', '-7'])}, "
+                                f"{rng.choice(['NULL', chr(39) + 'ab' + chr(39)])}, 2.0)")
+            column = rng.choice(["id", "a", "b", "c"])
+            query = (f"SELECT id FROM t ORDER BY {column} {rng.choice(['ASC', 'DESC'])} "
+                     f"LIMIT {rng.choice([0, 1, 5, 40, 120, 1000])} OFFSET {rng.choice([0, 3, 90])}")
+            with mock.patch.object(Interpreter, "_matching", side_effect=AssertionError("full sort")):
+                self.assertEqual(self.db.execute(query).rows, self.ordered(query), query)
+
+    def test_order_by_limit_keeps_type_errors_and_custom_values(self):
+        self.table.cols["b"][0].value = 3
+        with self.assertRaises(QueryError):
+            self.db.execute("SELECT id FROM t ORDER BY b LIMIT 2")
+        self.table.cols["b"][0].value = ["x"]
+        with self.assertRaises(QueryError):
+            self.db.execute("SELECT id FROM t ORDER BY b DESC LIMIT 2")
+        self.table.cols["b"][0].value = None
+        self.table.cols["c"][0].value = float("nan")
+        query = "SELECT id FROM t ORDER BY c LIMIT 30"
+        self.assertEqual(self.db.execute(query).rows, self.ordered(query))
 
     def test_find_where_starts_from_the_smallest_match(self):
         rng = random.Random(5)

@@ -394,6 +394,23 @@ class Interpreter():
             return sorted(found)
         return [i for i in range(len(table.rows)) if where.eval(self._record(table, i))]
 
+    @staticmethod
+    def _leading(table: Table, s: Select) -> list[int] | None:
+        """The first OFFSET + LIMIT rows of a single-column ORDER BY without WHERE, read in order from the tree's
+        lanes instead of sorting every row. None when that doesn't apply."""
+        if s.where is not None or s.limit is None or len(s.order) != 1 or not table.tree:
+            return None
+        column, descending = s.order[0]
+        keep = s.offset + s.limit
+        found = table.index[column].first(keep, descending)
+        if found is None:
+            return None
+        ordered = []
+        for _, rows in found:
+            ordered += table._row_positions(rows)
+        nulls = table.find(column, None) if not descending or len(ordered) < keep else []
+        return (ordered + nulls if descending else nulls + ordered)[:keep]
+
     def _create(self, s: CreateTable) -> Result:
         if s.table in self.database:
             if s.if_not_exists:
@@ -453,22 +470,24 @@ class Interpreter():
     def _select(self, s: Select) -> Result:
         t = self._table(s.table)
         self._check_columns(t, (s.columns or []) + [c for c, _ in s.order])
-        indices = self._matching(t, s.where)
-        # Stable sorts from the last key to the first give a multi-column ORDER BY; NULLs sort first
-        for column, descending in reversed(s.order):
-            cells = t.cols[column]
-            # Read only the matched rows' values unless they are most of the column
-            if len(indices) * 4 > len(cells):
-                vals = values(cells)
-            else:
-                vals = dict(zip(indices, values([cells[i] for i in indices])))
-            nulls = [i for i in indices if vals[i] is None]
-            rest = [i for i in indices if vals[i] is not None]
-            try:
-                rest.sort(key=vals.__getitem__, reverse=descending)
-            except TypeError:
-                raise QueryError(f"Can't order by {column}: it holds values of different types") from None
-            indices = rest + nulls if descending else nulls + rest
+        indices = self._leading(t, s)
+        if indices is None:
+            indices = self._matching(t, s.where)
+            # Stable sorts from the last key to the first give a multi-column ORDER BY; NULLs sort first
+            for column, descending in reversed(s.order):
+                cells = t.cols[column]
+                # Read only the matched rows' values unless they are most of the column
+                if len(indices) * 4 > len(cells):
+                    vals = values(cells)
+                else:
+                    vals = dict(zip(indices, values([cells[i] for i in indices])))
+                nulls = [i for i in indices if vals[i] is None]
+                rest = [i for i in indices if vals[i] is not None]
+                try:
+                    rest.sort(key=vals.__getitem__, reverse=descending)
+                except TypeError:
+                    raise QueryError(f"Can't order by {column}: it holds values of different types") from None
+                indices = rest + nulls if descending else nulls + rest
         indices = indices[s.offset:None if s.limit is None else s.offset + s.limit]
         if s.count:
             return Result(["count"], [[len(indices)]], 1, _plural(len(indices), "row"))

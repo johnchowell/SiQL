@@ -310,6 +310,72 @@ error:
     return NULL;
 }
 
+/* (key, ids) pairs in key order from a bound (None: the first or last key), until they hold `count` ids.
+ * Lanes link forward only, so a descending walk repeats the predecessor search: O(log n) per key. */
+static PyObject *SkipList_nearest(PyObject *op, PyObject *args, PyObject *kwargs)
+{
+    SkipList *self = (SkipList *)op;
+    PyObject *bound = Py_None;
+    Py_ssize_t count = 1;
+    int descending = 0, inclusive = 1;
+    static char *names[] = {"bound", "count", "descending", "inclusive", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Onpp:nearest", names, &bound, &count, &descending,
+                                     &inclusive)) {
+        return NULL;
+    }
+    Node *path[MAX_HEIGHT];
+    Node *node;
+    if (bound == Py_None) {
+        node = self->head;
+        if (descending) {
+            for (int lane = self->height - 1; lane >= 0; lane--) {
+                while (node->next[lane] != NULL) node = node->next[lane];
+            }
+        }
+        else {
+            node = node->next[0];
+        }
+    }
+    else {
+        if (find_path(self, bound, path, NULL) < 0) return NULL;
+        node = path[0]->next[0];
+        int equal = 0;
+        if (node != NULL) {
+            equal = PyObject_RichCompareBool(node->key, bound, Py_EQ);
+            if (equal < 0) return NULL;
+        }
+        if (descending) {
+            node = equal && inclusive ? node : path[0];
+        }
+        else if (equal && !inclusive) {
+            node = node->next[0];
+        }
+    }
+    PyObject *out = PyList_New(0);
+    if (out == NULL) return NULL;
+    Py_ssize_t total = 0;
+    while (node != NULL && node != self->head && total < count) {
+        PyObject *pair = PyTuple_Pack(2, node->key, node->ids);
+        if (pair == NULL || PyList_Append(out, pair) < 0) {
+            Py_XDECREF(pair);
+            goto error;
+        }
+        Py_DECREF(pair);
+        total += PySet_Size(node->ids);
+        if (descending) {
+            if (find_path(self, node->key, path, NULL) < 0) goto error;
+            node = path[0];
+        }
+        else {
+            node = node->next[0];
+        }
+    }
+    return out;
+error:
+    Py_DECREF(out);
+    return NULL;
+}
+
 static PyObject *SkipList_insert(PyObject *op, PyObject *args)
 {
     SkipList *self = (SkipList *)op;
@@ -448,6 +514,9 @@ static PyMethodDef SkipList_methods[] = {
     {"between", (PyCFunction)SkipList_between, METH_VARARGS | METH_KEYWORDS,
      "between(low=None, high=None, low_inclusive=True, high_inclusive=True, limit=-1): id sets in key order; "
      "None if more than `limit` ids match."},
+    {"nearest", (PyCFunction)SkipList_nearest, METH_VARARGS | METH_KEYWORDS,
+     "nearest(bound=None, count=1, descending=False, inclusive=True): (key, ids) pairs in key order from a "
+     "bound until they hold `count` ids."},
     {"insert", SkipList_insert, METH_VARARGS, "insert(key, cell_id)"},
     {"remove", SkipList_remove, METH_VARARGS, "remove(key, cell_id); raises KeyError if it isn't there."},
     {"lane_keys", SkipList_lane_keys, METH_O, "Keys in one lane, in order."},
