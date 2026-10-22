@@ -72,6 +72,95 @@ public sealed class Interpreter
             throw new QueryError($"{statement} is disabled");
     }
     static (string Column, object? Value)? Equality(Expr expression) => expression switch { Compare(Column c, "=" or "==", Literal l) => (c.Name, l.Value), Compare(Literal l, "=" or "==", Column c) => (c.Name, l.Value), _ => null };
+    // `column op literal` in either order, with the operator as seen from the column.
+    static (string Column, string Op, object? Value)? Comparison(Expr expression) => expression switch
+    {
+        Compare(Column c, var op, Literal l) => (c.Name, op, l.Value),
+        Compare(Literal l, var op, Column c) => (c.Name, op switch { "<" => ">", "<=" => ">=", ">" => "<", ">=" => "<=", _ => op }, l.Value),
+        _ => null
+    };
+    static List<int>? IndexRange(Table table, Expr expression) =>
+        table.Tree && Comparison(expression) is { Op: "<" or "<=" or ">" or ">=", Value: { } value } r
+            ? table.IndexRange(r.Column, r.Op[0] == '>' ? value : null, r.Op[0] == '<' ? value : null, r.Op == ">=", r.Op == "<=")
+            : null;
+    static List<int> MatchAnd(Table table, And a)
+    {
+        // The most selective item the tree can read gives the candidates; the other items are only checked on those.
+        List<int>? positions = null;
+        var used = new List<Expr>();
+        if (table.Tree)
+        {
+            (int Count, Expr Item)? best = null;
+            var ranges = new Dictionary<string, (string Op, object Value, Expr Item)?[]>();
+            foreach (var item in a.Items)
+            {
+                int? count = null;
+                if (Equality(item) is { } eq)
+                    count = table.Index![eq.Column].Estimate(eq.Value);
+                else if (item is In { Operand: Column col, Negate: false } ins && ins.Items.All(x => x is Literal))
+                    count = ins.Items.Sum(x => table.Index![col.Name].Estimate(((Literal)x).Value));
+                else if (Comparison(item) is { Op: "<" or "<=" or ">" or ">=", Value: { } value } r)
+                {
+                    // The first lower and upper bound of one kind on a column make one read.
+                    if (!ranges.TryGetValue(r.Column, out var pair))
+                        ranges[r.Column] = pair = new (string, object, Expr)?[2];
+                    int side = r.Op[0] == '<' ? 1 : 0;
+                    var other = pair[1 - side];
+                    if (pair[side] is null && (other is null || (other.Value.Value is string) == (value is string)))
+                        pair[side] = (r.Op, value, item);
+                }
+                if (count is { } c && (best is null || c < best.Value.Count))
+                    best = (c, item);
+            }
+            if (best is { } b)
+            {
+                positions = Match(table, b.Item).Order().ToList();
+                used.Add(b.Item);
+                if (positions.Count == 0)
+                    return positions;
+            }
+            foreach (var (column, pair) in ranges)
+            {
+                // A range read stops once it holds as many rows as the best candidates so far.
+                var (low, high) = (pair[0], pair[1]);
+                if (table.IndexRange(column, low?.Value, high?.Value, low?.Op == ">=", high?.Op == "<=",
+                        positions is null ? null : positions.Count - 1) is { } found)
+                {
+                    positions = found;
+                    used = pair.Where(p => p is not null).Select(p => p!.Value.Item).ToList();
+                    if (positions.Count == 0)
+                        return positions;
+                }
+            }
+        }
+        if (positions is null)
+        {
+            positions = Match(table, a.Items[0]).Order().ToList();
+            used.Add(a.Items[0]);
+        }
+        foreach (var item in a.Items)
+        {
+            if (positions.Count == 0)
+                break;
+            if (!used.Any(u => ReferenceEquals(u, item)))
+                positions = positions.Where(i => Values.Truth(item.Eval(table.Rows[i].ToDictionary()))).ToList();
+        }
+        return positions;
+    }
+    static List<int>? Leading(Table table, Select select)
+    {
+        // The first OFFSET + LIMIT rows of a single-column ORDER BY without WHERE, read in order from the tree's lanes
+        // instead of sorting every row.
+        if (select.Where is not null || select.Limit is not { } limit || select.Order is not { Count: 1 } order || !table.Tree)
+            return null;
+        var (column, descending) = order[0];
+        int keep = select.Offset + limit;
+        if (table.Index![column].First(keep, descending) is not { } found)
+            return null;
+        var ordered = found.SelectMany(p => table.Positions(p.Rows)).ToList();
+        var nulls = !descending || ordered.Count < keep ? table.Find(column, null) : [];
+        return (descending ? ordered.Concat(nulls) : nulls.Concat(ordered)).Take(keep).ToList();
+    }
     static HashSet<int> Match(Table table, Expr? where)
     {
         if (where is null)
@@ -79,6 +168,8 @@ public sealed class Interpreter
         Check(table, where.Columns);
         if (table.Tree && Equality(where) is { } eq)
             return table.Find(eq.Column, eq.Value).ToHashSet();
+        if (IndexRange(table, where) is { } range)
+            return range.ToHashSet();
         if (where is And a)
         {
             if (table.Tree && (table.CompressedSearch || table.IntegerSearch))
@@ -96,18 +187,7 @@ public sealed class Interpreter
                 if (simple)
                     return table.FindWhere(criteria).ToHashSet();
             }
-            HashSet<int>? result = null;
-            foreach (var item in a.Items)
-            {
-                var found = Match(table, item);
-                if (result is null)
-                    result = found;
-                else
-                    result.IntersectWith(found);
-                if (result.Count == 0)
-                    break;
-            }
-            return result ?? [];
+            return MatchAnd(table, a).ToHashSet();
         }
         if (where is Or o)
         {
@@ -193,17 +273,21 @@ public sealed class Interpreter
                     var cols = select.Columns ?? t.Struct.ColumnNames;
                     var order = select.Order ?? [];
                     Check(t, cols.Concat(order.Select(p => p.Column)));
-                    var indices = Match(t, select.Where).Order().ToList();
-                    foreach (var (col, desc) in order.Reverse())
+                    var indices = Leading(t, select);
+                    if (indices is null)
                     {
-                        var nulls = indices.Where(i => t.Rows[i].Col(col).Value is null).ToList();
-                        var rest = indices.Where(i => t.Rows[i].Col(col).Value is not null);
-                        try
+                        indices = Match(t, select.Where).Order().ToList();
+                        foreach (var (col, desc) in order.Reverse())
                         {
-                            var sorted = (desc ? rest.OrderByDescending(i => t.Rows[i].Col(col).Value, Comparer<object?>.Create(Values.Compare)) : rest.OrderBy(i => t.Rows[i].Col(col).Value, Comparer<object?>.Create(Values.Compare))).ToList();
-                            indices = desc ? sorted.Concat(nulls).ToList() : nulls.Concat(sorted).ToList();
+                            var nulls = indices.Where(i => t.Rows[i].Col(col).Value is null).ToList();
+                            var rest = indices.Where(i => t.Rows[i].Col(col).Value is not null);
+                            try
+                            {
+                                var sorted = (desc ? rest.OrderByDescending(i => t.Rows[i].Col(col).Value, Comparer<object?>.Create(Values.Compare)) : rest.OrderBy(i => t.Rows[i].Col(col).Value, Comparer<object?>.Create(Values.Compare))).ToList();
+                                indices = desc ? sorted.Concat(nulls).ToList() : nulls.Concat(sorted).ToList();
+                            }
+                            catch (InvalidOperationException) { throw new QueryError($"Can't order by {col}: it holds values of different types"); }
                         }
-                        catch (InvalidOperationException) { throw new QueryError($"Can't order by {col}: it holds values of different types"); }
                     }
                     indices = indices.Skip(select.Offset).Take(select.Limit ?? int.MaxValue).ToList();
                     if (select.Count)

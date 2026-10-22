@@ -530,7 +530,7 @@ class Table():
                     break
             return positions
         # Start from the smallest exact match count, then compare the other columns on those rows only
-        items.sort(key=lambda item: self.index[item[0]].count(item[1]))
+        items.sort(key=lambda item: self.index[item[0]].estimate(item[1]))
         column, value = items[0]
         rows = self.index[column].find(value)
         for column, value in items[1:]:

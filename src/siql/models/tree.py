@@ -364,7 +364,7 @@ class ColumnTree():
             rows += [row for row, _ in self.branches[None].matching(value)]
         return rows
 
-    def count(self, value) -> int:
+    def estimate(self, value) -> int:
         """Cells equal to `value` from the direct references, or an upper bound when they can't tell."""
         if self._uncacheable or not cacheable(value):
             return len(self)

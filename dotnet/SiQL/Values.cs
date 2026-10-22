@@ -94,7 +94,8 @@ public static class Values
         {
             if (left is double ld && !double.IsFinite(ld) || right is double rd && !double.IsFinite(rd) ||
                 left is float lf && !float.IsFinite(lf) || right is float rf && !float.IsFinite(rf))
-                return Convert.ToDouble(left) == Convert.ToDouble(right);
+                // Integers are finite: only another float can equal an infinity, and NaN equals nothing.
+                return left is double or float && right is double or float && Convert.ToDouble(left) == Convert.ToDouble(right);
             var a = Ratio(left!);
             var b = Ratio(right!);
             return a.N * b.D == b.N * a.D;

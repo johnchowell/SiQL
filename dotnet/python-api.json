@@ -217,6 +217,8 @@
       "lane_keys:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='lane', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "get:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "get_with_trace:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "between:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='low'), arg(arg='high'), arg(arg='low_inclusive'), arg(arg='high_inclusive'), arg(arg='limit')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None), Constant(value=None), Constant(value=True), Constant(value=True), UnaryOp(op=USub(), operand=Constant(value=1))])",
+      "nearest:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='bound'), arg(arg='count'), arg(arg='descending'), arg(arg='inclusive')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None), Constant(value=1), Constant(value=False), Constant(value=True)])",
       "insert:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key'), arg(arg='cell_id', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "get_many:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='keys'), arg(arg='chained'), arg(arg='trace')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=True), Constant(value=False)])",
       "remove:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='key'), arg(arg='cell_id', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
@@ -260,6 +262,7 @@
       "get:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "put:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column'), arg(arg='value'), arg(arg='rows')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "invalidate:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "discard:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "clear:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "info:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
     }
@@ -411,6 +414,7 @@
       "__str__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "select:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='var'), arg(arg='col_name')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
       "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col_name', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load()))), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find_range:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col_name', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load()))), arg(arg='low'), arg(arg='high'), arg(arg='low_inclusive'), arg(arg='high_inclusive')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None), Constant(value=None), Constant(value=True), Constant(value=True)])",
       "find_batch:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col_name'), arg(arg='values')], kwonlyargs=[arg(arg='order'), arg(arg='chained')], kw_defaults=[Constant(value='tree'), Constant(value=True)], defaults=[])",
       "addCols:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])",
       "find_where:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='criteria'), defaults=[])",
@@ -442,6 +446,9 @@
       "changed:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='cell', annotation=Constant(value='Cell')), arg(arg='old')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "clear_cache:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "find:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "estimate:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "find_range:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='low'), arg(arg='high'), arg(arg='low_inclusive'), arg(arg='high_inclusive'), arg(arg='limit')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None), Constant(value=None), Constant(value=True), Constant(value=True), Constant(value=None)])",
+      "first:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='count'), arg(arg='descending')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=False)])",
       "find_batch:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='values')], kwonlyargs=[arg(arg='order'), arg(arg='chained')], kw_defaults=[Constant(value='tree'), Constant(value=True)], defaults=[])"
     }
   },

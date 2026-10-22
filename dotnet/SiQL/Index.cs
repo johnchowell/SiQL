@@ -108,6 +108,25 @@ public sealed class QueryCache
         if (map.EnsureCapacity(0) > Math.Max(64, map.Count * 2))
             map.TrimExcess();
     }
+    public void Discard(object column, object? value)
+    {
+        // Only the result for an equal value can change; equal numbers share one canonical key.
+        if (!Values.Cacheable(value))
+        {
+            Invalidate(column);
+            return;
+        }
+        string key = Values.CacheKey(value);
+        if (!map.Remove((column, key), out var node))
+            return;
+        bytes -= node.Value.Size;
+        lru.Remove(node);
+        var keys = columnKeys[column];
+        keys.Remove(key);
+        if (keys.Count == 0)
+            columnKeys.Remove(column);
+        invalidations++;
+    }
     public void Clear()
     {
         invalidations += map.Count;
@@ -206,6 +225,57 @@ public sealed class SkipList<T> where T : notnull
             path[lane].Next[lane] = node.Next[lane];
         while (Height > 1 && head.Next[Height - 1] is null)
             Height--;
+    }
+    public List<IReadOnlyCollection<T>>? Between(OrderKey? low = null, OrderKey? high = null, bool lowInclusive = true,
+        bool highInclusive = true, int limit = -1)
+    {
+        Node? node = low is null ? head.Next[0] : Path(low)[0].Next[0];
+        if (low is not null && node is not null && !lowInclusive && node.Key!.CompareTo(low) == 0)
+            node = node.Next[0];
+        var result = new List<IReadOnlyCollection<T>>();
+        int total = 0;
+        for (; node is not null; node = node.Next[0])
+        {
+            if (high is not null && node.Key!.CompareTo(high) is var c && (highInclusive ? c > 0 : c >= 0))
+                break;
+            total += node.Ids.Count;
+            if (limit >= 0 && total > limit)
+                return null;
+            result.Add(node.Ids);
+        }
+        return result;
+    }
+    public List<(OrderKey Key, IReadOnlyCollection<T> Ids)> Nearest(OrderKey? bound = null, int count = 1,
+        bool descending = false, bool inclusive = true)
+    {
+        // Lanes link forward only, so a descending walk repeats the predecessor search: O(log n) per key.
+        Node? node;
+        if (bound is null)
+        {
+            node = head;
+            if (descending)
+                for (int lane = Height - 1; lane >= 0; lane--)
+                    while (node.Next[lane] is { } next)
+                        node = next;
+            else
+                node = node.Next[0];
+        }
+        else
+        {
+            Node before = Path(bound)[0];
+            Node? at = before.Next[0];
+            bool equal = at is not null && at.Key!.CompareTo(bound) == 0;
+            node = descending ? (equal && inclusive ? at : before) : (equal && !inclusive ? at!.Next[0] : at);
+        }
+        var result = new List<(OrderKey, IReadOnlyCollection<T>)>();
+        int total = 0;
+        while (node is not null && node != head && total < count)
+        {
+            result.Add((node.Key!, node.Ids));
+            total += node.Ids.Count;
+            node = descending ? Path(node.Key!)[0] : node.Next[0];
+        }
+        return result;
     }
     public IEnumerable<(OrderKey Key, IReadOnlyCollection<T> Ids)> Entries()
     {
@@ -319,7 +389,17 @@ public sealed class ColumnTree
     public IReadOnlyCollection<Cell> Dead => dead.Values.SelectMany(x => x).ToArray();
     public IReadOnlyCollection<Cell> Pending => pending.Values.SelectMany(x => x.Keys).ToArray();
     public int Count => branches.Values.Sum(b => b.Count) - dead.Values.Sum(d => d.Count) + pending.Values.Sum(p => p.Count);
-    internal int Estimate(object? value) => Values.TreeKey(value) is { } k ? (branches.GetValueOrDefault("k" + k)?.Count ?? 0) + (branches.GetValueOrDefault(Unordered)?.Count ?? 0) : Count;
+    public int Estimate(object? value)
+    {
+        // Cells equal to the value, or an upper bound when custom values could also be equal.
+        if (unsafeCells.Count != 0 || !Values.Cacheable(value))
+            return Count;
+        string key = Key(value);
+        int queued = pending.TryGetValue(key, out var p) ? p.Count : 0;
+        if (!branches.TryGetValue(key, out var branch))
+            return queued;
+        return queued + (branch.Lanes is null ? branch.Count : branch.Lanes.Get(new(value!)).Count);
+    }
     public ColumnTree(QueryCache? cache = null, bool observe = true, Action<Row, Cell>? onChange = null)
     {
         this.cache = cache;
@@ -328,6 +408,7 @@ public sealed class ColumnTree
     }
     public IReadOnlyList<Row> this[string? key] { get { string k = key is null ? Unordered : "k" + key; Live([k]); return branches.TryGetValue(k, out var b) ? b.Members.Values.ToArray() : []; } }
     public void ClearCache() => cache?.Invalidate(cacheColumn);
+    void Invalidate(object? value) => cache?.Discard(cacheColumn, value);
     bool CanCache(object? value) => cache is { MaxBytes: > 0 } && unsafeCells.Count == 0 && Values.Cacheable(value);
     void Safety(Cell cell)
     {
@@ -338,7 +419,7 @@ public sealed class ColumnTree
     }
     public void Add(Row row, Cell cell)
     {
-        ClearCache();
+        Invalidate(cell.Value);
         string key = Key(cell.Value);
         PopPending(key, cell);
         Safety(cell);
@@ -357,7 +438,7 @@ public sealed class ColumnTree
             Add(row, cell);
             return;
         }
-        ClearCache();
+        Invalidate(cell.Value);
         Safety(cell);
         if (!pending.TryGetValue(key, out var group))
             pending[key] = group = [];
@@ -400,7 +481,7 @@ public sealed class ColumnTree
     }
     public void Remove(Cell cell)
     {
-        ClearCache();
+        Invalidate(cell.Value);
         unsafeCells.Remove(cell);
         string key = Key(cell.Value);
         if (PopPending(key, cell) is null)
@@ -422,7 +503,7 @@ public sealed class ColumnTree
             Remove(cell);
             return;
         }
-        ClearCache();
+        Invalidate(cell.Value);
         unsafeCells.Remove(cell);
         if (!dead.TryGetValue(key, out var d))
             dead[key] = d = [];
@@ -455,7 +536,8 @@ public sealed class ColumnTree
         string previous = Key(old), current = Key(cell.Value);
         Row? row = pending.TryGetValue(previous, out var p) ? p.GetValueOrDefault(cell) : null;
         onChange?.Invoke(row ?? branches[previous].Members[cell], cell);
-        ClearCache();
+        Invalidate(old);
+        Invalidate(cell.Value);
         Safety(cell);
         if (row is not null)
         {
@@ -526,6 +608,111 @@ public sealed class ColumnTree
         if (branches.TryGetValue(Unordered, out var unkeyed))
             rows.AddRange(unkeyed.Matching(value));
         return rows;
+    }
+    static bool Digit(string key) => key.Length == 2 && char.IsAsciiDigit(key[1]);
+    public List<Row>? FindRange(object? low = null, object? high = null, bool lowInclusive = true, bool highInclusive = true,
+        int limit = -1)
+    {
+        // Rows whose value lies between bounds of one kind, compared as scans compare them. Null when the lanes
+        // can't answer exactly (custom values or mixed bounds) or more than `limit` rows match.
+        object[] bounds = new[] { low, high }.Where(bound => bound is not null).ToArray()!;
+        if (bounds.Length == 0 || unsafeCells.Count != 0 || !bounds.All(Values.Cacheable) ||
+            bounds.Select(bound => bound is string).Distinct().Count() != 1)
+            return null;
+        bool text = bounds[0] is string;
+        var keys = branches.Keys.Union(pending.Keys).Where(key => key != Unordered).ToList();
+        OrderKey? lower, upper;
+        bool lowerInclusive, upperInclusive;
+        if (text)
+        {
+            // Every string in a branch starts with its key, so whole branches fall outside the bounds.
+            keys = keys.Where(key => !(high is not null && Values.Compare(key[1..], high) > 0) &&
+                !(low is not null && Values.Compare(key[1..], Values.TreeKey(low)!) < 0)).ToList();
+            (lower, lowerInclusive) = (new(low ?? ""), low is null || lowInclusive);
+            (upper, upperInclusive) = (high is null ? null : new(high), highInclusive);
+        }
+        else
+        {
+            // Numbers sort before strings in a branch; first digits don't follow numeric order, so read each.
+            keys = keys.Where(Digit).ToList();
+            (lower, lowerInclusive) = (low is null ? null : new(low), lowInclusive);
+            (upper, upperInclusive) = high is null ? (new OrderKey(""), false) : (new(high), highInclusive);
+        }
+        Live(keys.Append(Unordered).ToArray());
+        var rows = new List<Row>();
+        foreach (string key in keys)
+        {
+            if (!branches.TryGetValue(key, out var branch))
+                continue;
+            var found = branch.Lanes!.Between(lower, upper, lowerInclusive, upperInclusive, limit < 0 ? -1 : limit - rows.Count);
+            if (found is null)
+                return null;
+            foreach (var cells in found)
+                rows.AddRange(cells.Select(cell => branch.Members[cell]));
+        }
+        if (!text && branches.TryGetValue(Unordered, out var unkeyed))
+        {
+            // Infinities have no first digit.
+            rows.AddRange(unkeyed.Members.Where(p => p.Key.Value is not null &&
+                (low is null || Values.Match(p.Key.Value, lowInclusive ? ">=" : ">", low)) &&
+                (high is null || Values.Match(p.Key.Value, highInclusive ? "<=" : "<", high))).Select(p => p.Value));
+            if (limit >= 0 && rows.Count > limit)
+                return null;
+        }
+        return rows;
+    }
+    public List<(object Value, List<Row> Rows)>? First(int count, bool descending = false)
+    {
+        // The leading non-null values in sort order with their rows, covering at least `count` rows (all rows when
+        // fewer). Null when the lanes can't order the column: custom values, or numbers and strings together.
+        if (unsafeCells.Count != 0)
+            return null;
+        var keys = branches.Keys.Union(pending.Keys).Where(key => key != Unordered).ToArray();
+        Live(keys.Append(Unordered).ToArray());
+        var ordered = keys.Where(branches.ContainsKey).ToDictionary(key => key, key => branches[key]);
+        var loose = new List<(object Value, List<Row> Rows)>();
+        if (branches.TryGetValue(Unordered, out var unkeyed))
+            foreach (var group in unkeyed.Members.Where(p => p.Key.Value is not null).GroupBy(p => Values.CacheKey(p.Key.Value)))
+                loose.Add((group.First().Key.Value!, group.Select(p => p.Value).ToList()));
+        bool numbers = loose.Count > 0 || ordered.Any(p => Digit(p.Key) && p.Value.Lanes!.Nearest()[0].Key.Value is not string);
+        bool strings = ordered.Any(p => !Digit(p.Key) || p.Value.Lanes!.Nearest(null, 1, true)[0].Key.Value is string);
+        if (numbers && strings)
+            return null;
+        var found = new List<(object Value, List<Row> Rows)>();
+        if (numbers)
+        {
+            // First digits don't follow numeric order: take each branch's leading values, then merge them.
+            foreach (var (key, branch) in ordered.Where(p => Digit(p.Key)))
+                found.AddRange(branch.Lanes!.Nearest(descending ? new OrderKey("") : null, count, descending, false)
+                    .Where(p => p.Key.Value is not string).Select(p => (p.Key.Value, p.Ids.Select(cell => branch.Members[cell]).ToList())));
+            found.AddRange(loose);
+            var comparer = Comparer<object>.Create(Values.Compare);
+            found = (descending ? found.OrderByDescending(p => p.Value, comparer) : found.OrderBy(p => p.Value, comparer)).ToList();
+        }
+        else
+        {
+            // Every string in a branch starts with its key, so branches in key order give the overall order.
+            var comparer = Comparer<string>.Create((a, b) => Values.Compare(a[1..], b[1..]));
+            foreach (string key in descending ? ordered.Keys.OrderDescending(comparer) : ordered.Keys.Order(comparer))
+            {
+                int held = found.Sum(p => p.Rows.Count);
+                if (held >= count)
+                    break;
+                var branch = ordered[key];
+                found.AddRange(branch.Lanes!.Nearest(descending ? null : new OrderKey(""), count - held, descending)
+                    .Select(p => (p.Key.Value, p.Ids.Select(cell => branch.Members[cell]).ToList())));
+            }
+        }
+        var result = new List<(object Value, List<Row> Rows)>();
+        int total = 0;
+        foreach (var entry in found)
+        {
+            if (total >= count)
+                break;
+            result.Add(entry);
+            total += entry.Rows.Count;
+        }
+        return result;
     }
     public List<List<Row>> FindBatch(IEnumerable<object?> query, string order = "tree", bool chained = true)
     {

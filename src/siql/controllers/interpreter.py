@@ -292,11 +292,11 @@ class Interpreter():
                 column = getattr(item, "operand", None)
                 compared = _comparison(item)
                 if compared is not None and compared[1] == EQ:
-                    counts.append((table.index[compared[0]].count(compared[2]), item))
+                    counts.append((table.index[compared[0]].estimate(compared[2]), item))
                 elif (isinstance(item, In) and not item.negate and isinstance(column, Column)
                         and all(isinstance(v, Literal) for v in item.values)):
                     node = table.index[column.name]
-                    counts.append((sum(node.count(v.value) for v in item.values), item))
+                    counts.append((sum(node.estimate(v.value) for v in item.values), item))
                 elif compared is not None and compared[1] in _FLIPPED and compared[2] is not None:
                     # The first lower and upper bound of one kind on a column make one read
                     name, op, value, value_first = compared
