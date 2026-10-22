@@ -2,6 +2,7 @@ import bisect
 import io
 import os
 import uuid
+from operator import attrgetter
 from typing import Type, Self
 
 from .row import RowStruct, Cell, Row
@@ -10,9 +11,10 @@ from .tree import ColumnTree
 from .cache import QueryCache, DEFAULT_CACHE_BYTES
 from .prefix import CompressedIndex, IntegerIndex
 from ..helpers.format import box
-from ..helpers.search import scan, EQ
+from ..helpers.search import scan, EQ, LT, LE, GT, GE
 
 FILE_ENCODING = "utf-8"
+_POSITION = attrgetter("_position")
 
 
 class Table():
@@ -53,7 +55,7 @@ class Table():
         self._query_cache = QueryCache(cache_max_bytes, traversed_nodes=cache_traversed_nodes)
         self.lazy_delete = lazy_delete
         self.lazy_add = lazy_add
-        self._positions = None  # id(row) -> position when the map was built, used by `find`
+        self._mapped = False  # each row's `_position` holds its position when the map was built, used by `find`
         self._deleted = []  # sorted map positions removed since then, independent of tree cleanup
         self._file = (file if file is not None else f"{uuid.uuid4().hex}.siql")
         self._buffer = io.StringIO()
@@ -197,7 +199,7 @@ class Table():
         self._forget_positions()
 
     def _forget_positions(self):
-        self._positions = None
+        self._mapped = False
         self._deleted.clear()
 
     def _index_column(self, name:str):
@@ -210,9 +212,9 @@ class Table():
     def _row_added(self, row:Row, index:int):
         if self._compressed_index is not None:
             self._compressed_index.add(row)
-        if self._positions is not None and index == len(self.rows) - 1:
+        if self._mapped and index == len(self.rows) - 1:
             # Map positions run past the queued deletes, so an appended row goes after all of them
-            self._positions[id(row)] = index + len(self._deleted)
+            row._position = index + len(self._deleted)
         else:
             self._forget_positions()  # rows after `index` shifted
         if self.index is not None:
@@ -225,14 +227,12 @@ class Table():
     def _row_removed(self, row:Row, index:int):
         if self._compressed_index is not None:
             self._compressed_index.remove(row)
-        if self._positions is None:
-            pass
+        if not self._mapped or (index == len(self.rows) and not self._deleted):
+            pass  # no map, or the last row left and the others keep their positions
         elif len(self._deleted) < len(self.rows) // 4 + 64:
             # Position offsets are independent of tree cleanup. Retain the map for
             # eager deletes too, instead of rebuilding all row positions per lookup.
-            bisect.insort(self._deleted, self._positions.pop(id(row)))
-        elif index == len(self.rows) and not self._deleted:
-            del self._positions[id(row)]
+            bisect.insort(self._deleted, row._position)
         else:
             self._forget_positions()
         if self.index is not None:
@@ -433,17 +433,53 @@ class Table():
             col_name = self.struct.column_names[col_name]
         if self.index is None:
             return scan(self.cols[col_name], EQ, value, True)
-        rows = self.index[col_name].find(value)
+        return self._row_positions(self.index[col_name].find(value))
+
+    def _row_positions(self, rows) -> list[int]:
+        """Current indices, in order, of Row objects of this table."""
         if not rows:
             return []
-        if self._positions is None:
-            self._positions = {id(r): i for i, r in enumerate(self.rows)}
+        if not self._mapped:
+            # Rows keep their own position: a hash map keyed by id(row) costs several cache misses per row
+            for i, r in enumerate(self.rows):
+                r._position = i
+            self._mapped = True
             self._deleted.clear()
-        found = sorted(self._positions[id(r)] for r in rows)
+        found = sorted(map(_POSITION, rows))
         if self._deleted:
             # Each queued delete before a row moved it up one place
             return [p - bisect.bisect_left(self._deleted, p) for p in found]
         return found
+
+    def find_range(self, col_name: str | int, low=None, high=None, low_inclusive=True, high_inclusive=True):
+        """Indices, in order, of the rows whose value in a column lies between two bounds (None: unbounded),
+        compared as the `<`, `<=`, `>`, `>=` scans compare them. Values that can't be compared don't match.
+        The tree's ordered lanes answer it when every value is a builtin; otherwise this checks every row.
+        """
+        if isinstance(col_name, int):
+            col_name = self.struct.column_names[col_name]
+        found = self._index_range(col_name, low, high, low_inclusive, high_inclusive)
+        if found is not None:
+            return found
+        cells = self.cols[col_name]
+        positions = None
+        for op, bound in ((GE if low_inclusive else GT, low), (LE if high_inclusive else LT, high)):
+            if bound is not None:
+                if positions is None:
+                    positions = scan(cells, op, bound)
+                else:
+                    positions = [positions[i] for i in scan([cells[p] for p in positions], op, bound)]
+        return list(range(len(cells))) if positions is None else positions
+
+    def _index_range(self, col_name, low, high, low_inclusive, high_inclusive, limit=None):
+        """`find_range` from the tree alone, or None when it can't answer or more than `limit` rows match."""
+        if self.index is None:
+            return None
+        # Past about a quarter of the rows, one pass over the column costs less than resolving positions
+        cap = len(self.rows) // 4 + 64
+        rows = self.index[col_name].find_range(low, high, low_inclusive, high_inclusive,
+                                               limit=cap if limit is None else min(limit, cap))
+        return None if rows is None else self._row_positions(rows)
 
     def find_batch(self, col_name, values, *, order="tree", chained=True):
         """Exact lookup for each input, scheduling nearby queries and reusing tree search paths.
@@ -461,15 +497,7 @@ class Table():
             cells = self.cols[col_name]
             return [scan(cells, EQ, value, True) for value in values]
         matches = self.index[col_name].find_batch(values, order=order, chained=chained)
-        if not any(matches):
-            return [[] for _ in values]
-        if self._positions is None:
-            self._positions = {id(row): i for i, row in enumerate(self.rows)}
-            self._deleted.clear()
-        result = [sorted(self._positions[id(row)] for row in rows) for rows in matches]
-        if self._deleted:
-            return [[p - bisect.bisect_left(self._deleted, p) for p in found] for found in result]
-        return result
+        return [self._row_positions(rows) for rows in matches]
 
     def addCols(self, **args):
         """Add new columns
@@ -490,32 +518,27 @@ class Table():
             column, value = next(iter(criteria.items()))
             return self.find(column, value)
         if self._compressed_index is not None:
-            rows = self._compressed_index.find(criteria)
-            if self._positions is None:
-                self._positions = {id(row): i for i, row in enumerate(self.rows)}
-                self._deleted.clear()
-            positions = sorted(self._positions[id(row)] for row in rows)
-            if self._deleted:
-                positions = [p - bisect.bisect_left(self._deleted, p) for p in positions]
-            return positions
-        # Reuse the current tree for the first predicate, then its native exact scan on the narrowed rows.
+            return self._row_positions(self._compressed_index.find(criteria))
         items = list(criteria.items())
-        if self.index is not None:
-            from .tree import tree_key
-            def estimate(item):
-                column, value = item
-                key = tree_key(value)
-                node = self.index[column]
-                return len(self.rows) if key is None else len(node.branches.get(key, ())) + len(node.branches.get(None, ()))
-            items.sort(key=estimate)
+        if self.index is None:
+            column, value = items[0]
+            positions = scan(self.cols[column], EQ, value, True)
+            for column, value in items[1:]:
+                cells = self.cols[column]
+                positions = [positions[i] for i in scan([cells[p] for p in positions], EQ, value, True)]
+                if not positions:
+                    break
+            return positions
+        # Start from the smallest exact match count, then compare the other columns on those rows only
+        items.sort(key=lambda item: self.index[item[0]].count(item[1]))
         column, value = items[0]
-        positions = self.find(column, value)
+        rows = self.index[column].find(value)
         for column, value in items[1:]:
-            cells = [self.rows[i].col(column) for i in positions]
-            positions = [positions[i] for i in scan(cells, EQ, value, True)]
-            if not positions:
+            i = self.struct.col(column)
+            rows = [rows[j] for j in scan([row.content[i] for row in rows], EQ, value, True)]
+            if not rows:
                 break
-        return positions
+        return self._row_positions(rows)
 
     def editByName(self, col, where, change):
         """Edit cells by column name and value. Will edit multiple cells if they fit the condition.

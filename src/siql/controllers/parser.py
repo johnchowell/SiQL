@@ -28,7 +28,7 @@ Keywords are case-insensitive; quote a column named like a keyword with backtick
 import operator
 import re
 from dataclasses import dataclass, field
-from typing import Any, NoReturn, Type
+from typing import Any, NamedTuple, NoReturn, Type
 
 
 class QueryError(Exception):
@@ -62,34 +62,35 @@ _TOKEN = re.compile(r"""
     | (?P<qname>`(?:[^`]|``)+`)
     | (?P<name>[A-Za-z_][A-Za-z0-9_]*)
     | (?P<op><=|>=|!=|<>|==|[=<>(),*;-])
-""", re.VERBOSE)
+    | (?P<bad>.)
+""", re.VERBOSE | re.DOTALL)
 
 
-@dataclass(frozen=True)
-class Token:
+class Token(NamedTuple):
     kind: str  # "name", "qname" (backtick-quoted name), "str", "num", "op" or "end"
     value: Any
     pos: int
 
 
 def tokenize(text: str) -> list[Token]:
+    # One C-level scan: every character matches some group, so the matches cover the text without gaps
     tokens = []
-    pos = 0
-    while pos < len(text):
-        m = _TOKEN.match(text, pos)
-        if not m:
-            raise QueryError(f"Unexpected character {text[pos]!r} at position {pos}")
-        kind, raw = m.lastgroup, m.group()
+    for m in _TOKEN.finditer(text):
+        kind = m.lastgroup
+        if kind == "ws":
+            continue
+        raw, pos = m.group(), m.start()
         if kind == "num":
-            tokens.append(Token(kind, float(raw) if any(c in raw for c in ".eE") else int(raw), pos))
+            tokens.append(Token(kind, float(raw) if "." in raw or "e" in raw or "E" in raw else int(raw), pos))
         elif kind == "str":
             tokens.append(Token(kind, raw[1:-1].replace(raw[0] * 2, raw[0]), pos))
         elif kind == "qname":
             tokens.append(Token(kind, raw[1:-1].replace("``", "`"), pos))
-        elif kind != "ws":
+        elif kind == "bad":
+            raise QueryError(f"Unexpected character {raw!r} at position {pos}")
+        else:
             tokens.append(Token(kind, raw, pos))
-        pos = m.end()
-    tokens.append(Token("end", None, pos))
+    tokens.append(Token("end", None, len(text)))
     return tokens
 
 

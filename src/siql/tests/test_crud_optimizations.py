@@ -61,10 +61,11 @@ class CrudOptimizations(unittest.TestCase):
                 expected = list(range(600))
                 TableDiff([AddRow(i, {'n': i}) for i in expected]).apply(table)
                 table.find('n', 0)
-                original_map = table._positions
+                self.assertTrue(table._mapped)
                 TableDiff([DropRow(10)]).apply(table)
                 expected.pop(10)
-                self.assertIs(table._positions, original_map)
+                self.assertTrue(table._mapped)
+                self.assertEqual(table._deleted, [10])
                 self.assertFalse(table.index['n'].dead)  # Eager removal stays eager.
                 rng = random.Random(42)
                 for step in range(450):

@@ -262,6 +262,54 @@ static PyObject *SkipList_get_with_trace(PyObject *op, PyObject *key)
     return result;
 }
 
+/* Id sets of the keys between two bounds (None: unbounded), in order. None when more than `limit` ids match. */
+static PyObject *SkipList_between(PyObject *op, PyObject *args, PyObject *kwargs)
+{
+    SkipList *self = (SkipList *)op;
+    PyObject *low = Py_None, *high = Py_None;
+    int low_inclusive = 1, high_inclusive = 1;
+    Py_ssize_t limit = -1;
+    static char *names[] = {"low", "high", "low_inclusive", "high_inclusive", "limit", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOppn:between", names, &low, &high, &low_inclusive,
+                                     &high_inclusive, &limit)) {
+        return NULL;
+    }
+    Node *node;
+    if (low == Py_None) {
+        node = self->head->next[0];
+    }
+    else {
+        Node *path[MAX_HEIGHT];
+        if (find_path(self, low, path, NULL) < 0) return NULL;
+        node = path[0]->next[0];
+        if (node != NULL && !low_inclusive) {
+            int equal = PyObject_RichCompareBool(node->key, low, Py_EQ);
+            if (equal < 0) return NULL;
+            if (equal) node = node->next[0];
+        }
+    }
+    PyObject *out = PyList_New(0);
+    if (out == NULL) return NULL;
+    Py_ssize_t total = 0;
+    for (; node != NULL; node = node->next[0]) {
+        if (high != Py_None) {
+            int inside = PyObject_RichCompareBool(node->key, high, high_inclusive ? Py_LE : Py_LT);
+            if (inside < 0) goto error;
+            if (!inside) break;
+        }
+        total += PySet_Size(node->ids);
+        if (limit >= 0 && total > limit) {
+            Py_DECREF(out);
+            Py_RETURN_NONE;
+        }
+        if (PyList_Append(out, node->ids) < 0) goto error;
+    }
+    return out;
+error:
+    Py_DECREF(out);
+    return NULL;
+}
+
 static PyObject *SkipList_insert(PyObject *op, PyObject *args)
 {
     SkipList *self = (SkipList *)op;
@@ -397,6 +445,9 @@ static PyMethodDef SkipList_methods[] = {
     {"get_with_trace", SkipList_get_with_trace, METH_O, "Return IDs and all inspected hashable keys, with their IDs."},
     {"get_many", (PyCFunction)SkipList_get_many, METH_VARARGS | METH_KEYWORDS,
      "get_many(keys, chained=True, trace=False): exact lookups and optional inspected-node trace."},
+    {"between", (PyCFunction)SkipList_between, METH_VARARGS | METH_KEYWORDS,
+     "between(low=None, high=None, low_inclusive=True, high_inclusive=True, limit=-1): id sets in key order; "
+     "None if more than `limit` ids match."},
     {"insert", SkipList_insert, METH_VARARGS, "insert(key, cell_id)"},
     {"remove", SkipList_remove, METH_VARARGS, "remove(key, cell_id); raises KeyError if it isn't there."},
     {"lane_keys", SkipList_lane_keys, METH_O, "Keys in one lane, in order."},

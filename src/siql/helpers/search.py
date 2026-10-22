@@ -77,6 +77,25 @@ class PySkipList():
         node = path[0].next[0]
         return (node.ids if node is not None and node.key == key else set()), trace
 
+    def between(self, low=None, high=None, low_inclusive=True, high_inclusive=True, limit=-1):
+        """Id sets of the keys between two bounds (None: unbounded), in order. None if more than `limit` ids match."""
+        if low is None:
+            node = self.head.next[0]
+        else:
+            node = self._path(low)[0].next[0]
+            if node is not None and not low_inclusive and node.key == low:
+                node = node.next[0]
+        out, total = [], 0
+        while node is not None:
+            if high is not None and not (node.key <= high if high_inclusive else node.key < high):
+                break
+            total += len(node.ids)
+            if 0 <= limit < total:
+                return None
+            out.append(node.ids)
+            node = node.next[0]
+        return out
+
     def insert(self, key, cell_id: int):
         path = self._path(key)
         node = path[0].next[0]
