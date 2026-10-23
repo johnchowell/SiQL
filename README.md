@@ -1,5 +1,9 @@
 # SiQL (Simple Query Language)
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+[![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fjohnchowell%2FSiQL%2Factions%2Fworkflows%2Fpr-build-number.yml%2Fruns%3Fper_page%3D1&query=%24.workflow_runs%5B0%5D.run_number&label=version&prefix=1.1.0%2Bbuild.&color=blue)](https://github.com/johnchowell/SiQL/actions/workflows/pr-build-number.yml)
+
+The build suffix increments when a pull request opens, reopens, or receives new commits. The badge shows the
+latest run of the [pull request build-number workflow](.github/workflows/pr-build-number.yml); the image may take
+a few minutes to refresh.
 
 ### *A Python API for local tables and data access/searching much like [SQLite](https://sqlite.org/)*
 This Python library is intended to make data access and usage simpler with single calls and query chains
