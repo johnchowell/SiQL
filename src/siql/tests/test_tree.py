@@ -8,6 +8,7 @@ from unittest import mock
 from ..models import (Table, Row, Cell, RowStruct, ColumnTree, TableDiff, AddCol, DropCol, RenameCol,
                       AddRow, DropRow, SetCell, tree_key)
 from ..models.tree import order_key
+from ..models.cache import cacheable
 from ..helpers.search import PySkipList
 
 try:
@@ -58,6 +59,21 @@ class InTempDir(unittest.TestCase):
             self.assertEqual(len(node), len(t.rows))
             for key, branch in node.branches.items():
                 self.assertLanesMatch(key, branch)
+                self.assertDirectMatches(branch)
+
+    def assertDirectMatches(self, branch):
+        """The direct references group every builtin-valued cell of a branch (queued ones too) by value."""
+        if branch._direct is None:
+            return
+        expected = {}
+        for cell_id, (row, cell) in branch.items():
+            if cacheable(cell.value):
+                expected.setdefault(cell.value, {})[cell_id] = row
+        actual = {value: {id(entry[0]): entry[1]} if isinstance(entry, tuple) else dict(entry)
+                  for value, entry in branch._direct.items()}
+        self.assertEqual(actual.keys(), expected.keys())
+        for value, cells in expected.items():
+            self.assertEqual(actual[value], cells)
 
     def assertLanesMatch(self, key, branch):
         """A keyed branch's skip list holds each of its cells exactly once, under the cell's current value,

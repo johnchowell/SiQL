@@ -334,7 +334,7 @@ public sealed class Table
     }
     public IEnumerable<Cell> Column(string name) => columns[name];
     public IEnumerable<Cell> Column(int number) => Column(Struct.Names[number < 0 ? Struct.Count + number : number]);
-    List<int> Positions(IEnumerable<Row> matches)
+    internal List<int> Positions(IEnumerable<Row> matches)
     {
         if (positions is null)
         {
@@ -352,6 +352,26 @@ public sealed class Table
     }
     public List<int> Find(string column, object? value) => index is null ? columns[column].Select((cell, i) => (cell, i)).Where(p => Values.Equal(value, p.cell.Value)).Select(p => p.i).ToList() : Positions(index[column].Find(value));
     public List<int> Find(int column, object? value) => Find(Struct.Names[column < 0 ? Struct.Count + column : column], value);
+    public List<int> FindRange(string column, object? low = null, object? high = null, bool lowInclusive = true, bool highInclusive = true)
+    {
+        // Rows whose value lies between two bounds (null: unbounded), compared as the <, <=, >, >= scans compare them.
+        if (IndexRange(column, low, high, lowInclusive, highInclusive) is { } found)
+            return found;
+        var cells = columns[column];
+        return Enumerable.Range(0, cells.Count).Where(i =>
+            (low is null || Values.Match(cells[i].Value, lowInclusive ? ">=" : ">", low)) &&
+            (high is null || Values.Match(cells[i].Value, highInclusive ? "<=" : "<", high))).ToList();
+    }
+    public List<int> FindRange(int column, object? low = null, object? high = null, bool lowInclusive = true, bool highInclusive = true) =>
+        FindRange(Struct.Names[column < 0 ? Struct.Count + column : column], low, high, lowInclusive, highInclusive);
+    internal List<int>? IndexRange(string column, object? low, object? high, bool lowInclusive, bool highInclusive, int? limit = null)
+    {
+        if (index is null)
+            return null;
+        // Past about a quarter of the rows, one pass over the column costs less than resolving positions.
+        int cap = rows.Count / 4 + 64;
+        return index[column].FindRange(low, high, lowInclusive, highInclusive, Math.Min(limit ?? cap, cap)) is { } found ? Positions(found) : null;
+    }
     public List<List<int>> FindBatch(int column, IEnumerable<object?> values, string order = "tree", bool chained = true) => FindBatch(Struct.Names[column < 0 ? Struct.Count + column : column], values, order, chained);
     public List<List<int>> FindBatch(string column, IEnumerable<object?> values, string order = "tree", bool chained = true)
     {

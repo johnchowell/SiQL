@@ -365,8 +365,9 @@ people.cache_max_bytes = 0                  # disable caching
 ```
 
 Entries retain references to the table's live rows. They do not duplicate row values or retain old
-row positions; results keep the same ordering and return fresh lists. Edits invalidate results for
-the affected column, including direct cell assignments. Inserts, deletes, column removal, and
+row positions; results keep the same ordering and return fresh lists. An edit invalidates only the
+results for the cell's old and new values, including direct cell assignments; a custom or unhashable
+value invalidates its whole column. Inserts, deletes, column removal, and
 rollback also keep the cache coherent. Changing an unrelated column preserves the useful cached
 rows, and subsequent reads see that column's current values. Cached misses are invalidated too.
 

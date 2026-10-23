@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .row import Row, Cell
 
 _DIRECT_REFS = os.environ.get("SIQL_DIRECT_REFS", "1") != "0"
+_DIGITS = frozenset("0123456789")
 
 
 def tree_key(value) -> str | None:
@@ -39,7 +40,7 @@ class Branch(dict):
     def __init__(self, ordered: bool):
         super().__init__()
         self.lanes = SkipList() if ordered else None
-        self._direct = {} if ordered and _DIRECT_REFS else None
+        self._direct = {} if _DIRECT_REFS else None
 
     def _direct_put(self, row: "Row", cell: "Cell"):
         if self._direct is None or not cacheable(cell.value):
@@ -73,6 +74,10 @@ class Branch(dict):
     def _direct_rows(self, value) -> list["Row"]:
         entry = self._direct.get(value)
         return list(entry.values()) if isinstance(entry, dict) else ([entry[1]] if entry is not None else [])
+
+    def _direct_count(self, value) -> int:
+        entry = self._direct.get(value)
+        return len(entry) if isinstance(entry, dict) else (entry is not None)
 
     def _refresh(self, cell: "Cell", old):
         """Keep the direct index current when a cell changes to an equal value."""
@@ -140,7 +145,7 @@ class ColumnTree():
         return [row for row, _ in self._live([key])]
 
     def add(self, row: "Row", cell: "Cell"):
-        self.clear_cache()
+        self._invalidate(cell.value)
         self._pop_pending(tree_key(cell.value), id(cell))
         if not cacheable(cell.value):
             self._uncacheable.add(id(cell))
@@ -160,7 +165,7 @@ class ColumnTree():
             # Undoing a lazy delete revives the entry already in the lanes.
             self.add(row, cell)
             return
-        self.clear_cache()
+        self._invalidate(cell.value)
         if not cacheable(cell.value):
             self._uncacheable.add(cell_id)
         entries = self._pending.setdefault(key, {})
@@ -197,7 +202,7 @@ class ColumnTree():
             self._pending_count -= len(entries)
 
     def remove(self, cell: "Cell"):
-        self.clear_cache()
+        self._invalidate(cell.value)
         self._uncacheable.discard(id(cell))
         key = tree_key(cell.value)
         if self._pop_pending(key, id(cell)) is not None:
@@ -214,7 +219,7 @@ class ColumnTree():
         if id(cell) in self._pending.get(tree_key(cell.value), {}):
             self.remove(cell)
             return
-        self.clear_cache()
+        self._invalidate(cell.value)
         self._uncacheable.discard(id(cell))
         self._dead.setdefault(tree_key(cell.value), set()).add(id(cell))
         self._dead_count += 1
@@ -268,7 +273,8 @@ class ColumnTree():
         pending = self._pending.get(old_key, {}).get(id(cell))
         if self._on_change is not None:
             self._on_change((pending if pending is not None else self.branches[old_key][id(cell)])[0], cell)
-        self.clear_cache()
+        self._invalidate(old)
+        self._invalidate(new)
         if cacheable(new) or id(cell) in self._dead.get(old_key, ()):
             self._uncacheable.discard(id(cell))
         else:
@@ -282,7 +288,7 @@ class ColumnTree():
             if old_key is not None and order_key(old) != order_key(new):
                 branch = self.branches[old_key]
                 branch.put(*branch.take(id(cell), old))
-            elif old_key is not None:
+            else:
                 self.branches[old_key]._refresh(cell, old)
             return
         entry = self._take(old_key, id(cell), old)
@@ -297,6 +303,11 @@ class ColumnTree():
     def clear_cache(self):
         if self._cache is not None:
             self._cache.invalidate(self._cache_column)
+
+    def _invalidate(self, value):
+        """A cell holding `value` changed: only results for values equal to it are stale."""
+        if self._cache is not None:
+            self._cache.discard(self._cache_column, value)
 
     def _can_cache(self, value):
         return (self._cache is not None and self._cache.max_bytes > 0
@@ -324,6 +335,14 @@ class ColumnTree():
     def _find(self, value) -> list["Row"]:
         """Rows (in no particular order) whose value in this column equals `value`."""
         key = tree_key(value)
+        if key is None and cacheable(value) and not self._uncacheable:
+            # Only builtins are filed, so None, inf and huge ints can only equal values in the None branch
+            self._live([None], purge_only=True)
+            branch = self.branches.get(None)
+            if branch is None:
+                return []
+            return branch._direct_rows(value) if branch._direct is not None else [
+                row for row, _ in branch.matching(value)]
         if key is None:
             # An unusual value might compare equal to anything, so check every branch (None only checks its own)
             keys = [None] if value is None else list(set(self.branches) | set(self._pending))
@@ -344,6 +363,119 @@ class ColumnTree():
         if None in self.branches and (self._uncacheable or not cacheable(value)):
             rows += [row for row, _ in self.branches[None].matching(value)]
         return rows
+
+    def estimate(self, value) -> int:
+        """Cells equal to `value` from the direct references, or an upper bound when they can't tell."""
+        if self._uncacheable or not cacheable(value):
+            return len(self)
+        key = tree_key(value)
+        branch = self.branches.get(key)
+        pending = len(self._pending.get(key, ()))
+        if branch is None:
+            return pending
+        if branch._direct is None:
+            return len(branch) + pending
+        return branch._direct_count(value) + pending
+
+    def find_range(self, low=None, high=None, low_inclusive=True, high_inclusive=True, limit=None):
+        """Rows (in no particular order) whose value lies between bounds of one kind (None: unbounded), compared
+        as `scan` would. None when the lanes can't answer exactly, or more than `limit` rows match."""
+        bounds = [bound for bound in (low, high) if bound is not None]
+        if (not bounds or self._uncacheable or not all(cacheable(bound) for bound in bounds)
+                or len({type(bound) is str for bound in bounds}) != 1):
+            return None
+        text = type(bounds[0]) is str
+        keys = [key for key in set(self.branches) | set(self._pending) if key is not None]
+        if text:
+            # Every string in a branch starts with its key, so whole branches fall outside the bounds
+            keys = [key for key in keys
+                    if not (high is not None and key > high) and not (low is not None and key < low[:1])]
+            lower, lower_inclusive = (1, "" if low is None else low), low is None or low_inclusive
+            upper, upper_inclusive = (None if high is None else (1, high)), high_inclusive
+        else:
+            # Numbers sort before strings in a branch; first digits don't follow numeric order, so read each
+            keys = [key for key in keys if key in _DIGITS]
+            lower, lower_inclusive = (None if low is None else (0, low)), low_inclusive
+            upper, upper_inclusive = ((1, ""), False) if high is None else ((0, high), high_inclusive)
+        self._live(keys + [None], purge_only=True)
+        limit = -1 if limit is None else limit
+        rows = []
+        for key in keys:
+            branch = self.branches.get(key)
+            if branch is None:
+                continue
+            found = branch.lanes.between(lower, upper, lower_inclusive, upper_inclusive,
+                                         limit - len(rows) if limit >= 0 else -1)
+            if found is None:
+                return None
+            for cell_ids in found:
+                rows.extend([branch[cell_id][0] for cell_id in cell_ids])
+        unkeyed = self.branches.get(None)
+        if unkeyed is not None and not text:
+            # inf, -inf and huge ints have no first digit
+            def inside(value):
+                return (value is not None
+                        and (low is None or (value >= low if low_inclusive else value > low))
+                        and (high is None or (value <= high if high_inclusive else value < high)))
+            if unkeyed._direct is not None:
+                for value in list(unkeyed._direct):
+                    if inside(value):
+                        rows.extend(unkeyed._direct_rows(value))
+            else:
+                rows.extend(row for row, cell in unkeyed.values() if inside(cell.value))
+            if 0 <= limit < len(rows):
+                return None
+        return rows
+
+    def first(self, count, descending=False) -> list[tuple] | None:
+        """(value, rows) of the leading non-null values in sort order, covering at least `count` rows (all rows
+        when fewer). None when the lanes can't order the column: custom values, or numbers and strings together."""
+        if self._uncacheable:
+            return None
+        keys = [key for key in set(self.branches) | set(self._pending) if key is not None]
+        self._live(keys + [None], purge_only=True)
+        branches = {key: self.branches[key] for key in keys if key in self.branches}
+        unkeyed = self.branches.get(None)
+        # inf, -inf and huge ints have no first digit; None never sorts with the values
+        loose = {}
+        if unkeyed is not None and unkeyed._direct is not None:
+            loose = {value: unkeyed._direct_rows(value) for value in unkeyed._direct if value is not None}
+        elif unkeyed is not None:
+            for row, cell in unkeyed.values():
+                if cell.value is not None:
+                    loose.setdefault(cell.value, []).append(row)
+        loose = list(loose.items())
+        numbers = bool(loose) or any(key in _DIGITS and branch.lanes.nearest(None, 1)[0][0][0] == 0
+                                     for key, branch in branches.items())
+        strings = any(key not in _DIGITS or branch.lanes.nearest(None, 1, True)[0][0][0] == 1
+                      for key, branch in branches.items())
+        if numbers and strings:
+            return None
+        found = []
+        if numbers:
+            # First digits don't follow numeric order: take each branch's leading values, then merge them
+            for key, branch in branches.items():
+                if key in _DIGITS:
+                    walk = branch.lanes.nearest((1, "") if descending else None, count, descending, False)
+                    found += [(node_key[1], [branch[cell_id][0] for cell_id in cell_ids])
+                              for node_key, cell_ids in walk if node_key[0] == 0]
+            found += loose
+            found.sort(key=lambda entry: entry[0], reverse=descending)
+        else:
+            # Every string in a branch starts with its key, so branches in key order give the overall order
+            for key in sorted(branches, reverse=descending):
+                branch, held = branches[key], sum(len(rows) for _, rows in found)
+                if held >= count:
+                    break
+                walk = branch.lanes.nearest(None if descending else (1, ""), count - held, descending)
+                found += [(node_key[1], [branch[cell_id][0] for cell_id in cell_ids]) for node_key, cell_ids in walk]
+        out, held = [], 0
+        for value, rows in found:
+            if held >= count:
+                break
+            out.append((value, rows))
+            held += len(rows)
+        return out
 
     def find_batch(self, values, *, order="tree", chained=True):
         """Batch-local fingers per ordered branch; restore input order after scheduling queries."""

@@ -113,6 +113,16 @@ class QueryCache:
             for key in tuple(keys):
                 self._remove(key)
 
+    def discard(self, column, value):
+        """Drop the only result a cell holding `value` can change. Equal builtins share one key."""
+        if not cacheable(value):
+            self.invalidate(column)
+            return
+        key = (column, value)
+        if key in self._entries:
+            self.invalidations += 1
+            self._remove(key)
+
     def clear(self):
         self.invalidations += len(self._entries)
         self._entries.clear()

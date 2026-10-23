@@ -8,7 +8,7 @@ from ..models.table import Table
 from ..models.diff import TableDiff, AddCol, DropCol, SetColType, RenameCol, AddRow, DropRow, SetCell
 from ..managers.database import Database
 from ..helpers.format import box
-from ..helpers.search import scan, scan_match, values, SCAN_OPS, EQ, IS_NULL, NOT_NULL
+from ..helpers.search import scan, scan_match, values, SCAN_OPS, EQ, LT, LE, GT, GE, IS_NULL, NOT_NULL
 from ..helpers.types import type_name
 from .parser import (QueryError, OPERATORS, parse, Statement, Expr, Column, Literal, Compare, And, Or, Not,
                      IsNull, In, Like, CreateTable, DropTable, AddColumn,
@@ -86,6 +86,24 @@ def _coerce(value, col_type: Type, column: str):
 
 
 _BOOLS = {"true": True, "false": False, "1": True, "0": False}
+_FLIPPED = {LT: GT, LE: GE, GT: LT, GE: LE}
+
+
+def _comparison(e: Expr):
+    """(column, op, value, value_first) for `column op literal` in either order, else None."""
+    if isinstance(e, Compare):
+        if isinstance(e.left, Column) and isinstance(e.right, Literal):
+            return e.left.name, SCAN_OPS[e.op], e.right.value, False
+        if isinstance(e.left, Literal) and isinstance(e.right, Column):
+            return e.right.name, SCAN_OPS[e.op], e.left.value, True
+    return None
+
+
+def _bounds(op: int, value) -> tuple:
+    """`find_range` arguments for `column op value`."""
+    if op in (GT, GE):
+        return value, None, op == GE, True
+    return None, value, True, op == LE
 
 
 def _from_text(text: str, col_type: Type):
@@ -208,15 +226,13 @@ class Interpreter():
         if isinstance(e, Compare):
             if isinstance(e.left, Literal) and isinstance(e.right, Literal):
                 return set(everything) if e.eval({}) else set()
-            if isinstance(e.left, Column) and isinstance(e.right, Literal):
-                name, value, value_first = e.left.name, e.right.value, False
-            elif isinstance(e.left, Literal) and isinstance(e.right, Column):
-                name, value, value_first = e.right.name, e.left.value, True
-            else:
+            found = Interpreter._index_positions(table, e)
+            if found is not None:
+                return set(found)
+            compared = _comparison(e)
+            if compared is None:
                 return None
-            op = SCAN_OPS[e.op]
-            if op == EQ and table.tree:
-                return set(table.find(name, value))
+            name, op, value, value_first = compared
             return set(scan(table.cols[name], op, value, value_first))
         if isinstance(e, IsNull) and isinstance(column, Column):
             return set(scan(table.cols[column.name], NOT_NULL if e.negate else IS_NULL, None))
@@ -224,51 +240,176 @@ class Interpreter():
             return set(scan_match(table.cols[column.name], e._regex.fullmatch, e.negate))
         if isinstance(e, In) and isinstance(column, Column) and all(isinstance(v, Literal) for v in e.values):
             found = set()
-            for v in e.values:
-                found.update(table.find(column.name, v.value) if table.tree
-                             else scan(table.cols[column.name], EQ, v.value))
+            if table.tree:
+                for positions in table.find_batch(column.name, [v.value for v in e.values]):
+                    found.update(positions)
+            else:
+                for v in e.values:
+                    found.update(scan(table.cols[column.name], EQ, v.value))
             return set(everything) - found if e.negate else found
         if isinstance(e, Not):
             inner = Interpreter._scan_where(table, e.item)
             return None if inner is None else set(everything) - inner
-        if isinstance(e, (And, Or)):
-            if isinstance(e, And) and table.tree and (table.compressed_search or table.integer_search):
-                criteria = {}
-                for item in e.items:
-                    if not isinstance(item, Compare) or SCAN_OPS[item.op] != EQ:
-                        break
-                    if isinstance(item.left, Column) and isinstance(item.right, Literal):
-                        name, value = item.left.name, item.right.value
-                    elif isinstance(item.left, Literal) and isinstance(item.right, Column):
-                        name, value = item.right.name, item.left.value
-                    else:
-                        break
-                    if name in criteria:
-                        break  # Preserve repeated-column predicates through the normal AND path.
-                    criteria[name] = value
-                else:
-                    return set(table.find_where(**criteria))
+        if isinstance(e, And):
+            return set(Interpreter._scan_and(table, e))
+        if isinstance(e, Or):
             parts = [Interpreter._scan_where(table, item) for item in e.items]
             if any(p is None for p in parts):
                 return None
-            return set.intersection(*parts) if isinstance(e, And) else set.union(*parts)
+            return set.union(*parts)
         return None
+
+    @staticmethod
+    def _index_positions(table: Table, e: Expr, limit: int | None = None) -> list[int] | None:
+        """Sorted rows for `column = literal` or a range comparison read from the tree, else None."""
+        compared = _comparison(e) if table.tree else None
+        if compared is None:
+            return None
+        name, op, value, value_first = compared
+        if op == EQ:
+            return table.find(name, value)
+        if op in _FLIPPED and value is not None:
+            return table._index_range(name, *_bounds(_FLIPPED[op] if value_first else op, value), limit=limit)
+        return None
+
+    @staticmethod
+    def _scan_and(table: Table, e: And) -> list[int]:
+        """Sorted rows matching every item. The most selective item the tree can read gives the candidates;
+        the other items are only checked on those."""
+        if table.tree and (table.compressed_search or table.integer_search):
+            criteria = {}
+            for item in e.items:
+                compared = _comparison(item)
+                if compared is None or compared[1] != EQ or compared[0] in criteria:
+                    break  # Preserve repeated-column predicates through the normal AND path.
+                criteria[compared[0]] = compared[2]
+            else:
+                return table.find_where(**criteria)
+        positions = used = None
+        if table.tree:
+            counts, ranges = [], {}
+            for item in e.items:
+                column = getattr(item, "operand", None)
+                compared = _comparison(item)
+                if compared is not None and compared[1] == EQ:
+                    counts.append((table.index[compared[0]].estimate(compared[2]), item))
+                elif (isinstance(item, In) and not item.negate and isinstance(column, Column)
+                        and all(isinstance(v, Literal) for v in item.values)):
+                    node = table.index[column.name]
+                    counts.append((sum(node.estimate(v.value) for v in item.values), item))
+                elif compared is not None and compared[1] in _FLIPPED and compared[2] is not None:
+                    # The first lower and upper bound of one kind on a column make one read
+                    name, op, value, value_first = compared
+                    op = _FLIPPED[op] if value_first else op
+                    pair = ranges.setdefault(name, [None, None])
+                    side = op in (LT, LE)
+                    other = pair[not side]
+                    if pair[side] is None and (other is None or (type(other[2]) is str) == (type(value) is str)):
+                        pair[side] = (item, op, value)
+            if counts:
+                item = min(counts, key=lambda c: c[0])[1]
+                positions, used = Interpreter._index_positions(table, item), [item]
+                if positions is None:
+                    positions = sorted(Interpreter._scan_where(table, item))
+                if not positions:
+                    return []
+            for name, (low, high) in ranges.items():
+                # A range read stops once it holds as many rows as the best candidates so far
+                found = table._index_range(name, low and low[2], high and high[2], bool(low) and low[1] == GE,
+                                           bool(high) and high[1] == LE,
+                                           limit=None if positions is None else len(positions) - 1)
+                if found is not None:
+                    positions, used = found, [bound[0] for bound in (low, high) if bound]
+                    if not positions:
+                        return []
+        if positions is None:
+            for item in e.items:
+                found = Interpreter._scan_where(table, item)
+                if found is not None:
+                    positions, used = sorted(found), [item]
+                    break
+            else:
+                positions, used = list(range(len(table.rows))), []
+        for item in e.items:
+            if not positions:
+                break
+            if not any(item is u for u in used):
+                positions = Interpreter._filter(table, item, positions)
+        return positions
+
+    @staticmethod
+    def _filter(table: Table, e: Expr, positions: list[int]) -> list[int]:
+        """The sorted `positions` whose rows match `e`, comparing only those rows."""
+        if not positions:
+            return []
+        column = getattr(e, "operand", None)
+
+        def cells(name):
+            col = table.cols[name]
+            return [col[p] for p in positions]
+
+        if isinstance(e, Compare):
+            if isinstance(e.left, Literal) and isinstance(e.right, Literal):
+                return list(positions) if e.eval({}) else []
+            compared = _comparison(e)
+            if compared is not None:
+                name, op, value, value_first = compared
+                if op == EQ and table.tree:
+                    value_first = True  # the same comparison as a tree lookup
+                return [positions[i] for i in scan(cells(name), op, value, value_first)]
+        elif isinstance(e, IsNull) and isinstance(column, Column):
+            return [positions[i] for i in scan(cells(column.name), NOT_NULL if e.negate else IS_NULL, None)]
+        elif isinstance(e, Like) and isinstance(column, Column):
+            return [positions[i] for i in scan_match(cells(column.name), e._regex.fullmatch, e.negate)]
+        elif isinstance(e, In) and isinstance(column, Column) and all(isinstance(v, Literal) for v in e.values):
+            subset, found = cells(column.name), set()
+            for v in e.values:
+                found.update(scan(subset, EQ, v.value, table.tree))
+            return [p for i, p in enumerate(positions) if (i in found) != e.negate]
+        elif isinstance(e, Not):
+            inner = set(Interpreter._filter(table, e.item, positions))
+            return [p for p in positions if p not in inner]
+        elif isinstance(e, And):
+            for item in e.items:
+                positions = Interpreter._filter(table, item, positions)
+            return positions
+        elif isinstance(e, Or):
+            found = set()
+            for item in e.items:
+                found.update(Interpreter._filter(table, item, [p for p in positions if p not in found]))
+            return [p for p in positions if p in found]
+        return [p for p in positions if e.eval(Interpreter._record(table, p))]
 
     def _matching(self, table: Table, where: Expr | None) -> list[int]:
         if where is None:
             return list(range(len(table.rows)))
         self._check_columns(table, where.columns())
+        if isinstance(where, And):
+            return self._scan_and(table, where)
+        found = self._index_positions(table, where)
+        if found is not None:
+            return found
         found = self._scan_where(table, where)
         if found is not None:
             return sorted(found)
-        # Narrow down with the parts of an AND that can be scanned, then check the rest row by row
-        candidates = None
-        if isinstance(where, And):
-            known = [p for p in (self._scan_where(table, item) for item in where.items) if p is not None]
-            if known:
-                candidates = sorted(set.intersection(*known))
-        indices = range(len(table.rows)) if candidates is None else candidates
-        return [i for i in indices if where.eval(self._record(table, i))]
+        return [i for i in range(len(table.rows)) if where.eval(self._record(table, i))]
+
+    @staticmethod
+    def _leading(table: Table, s: Select) -> list[int] | None:
+        """The first OFFSET + LIMIT rows of a single-column ORDER BY without WHERE, read in order from the tree's
+        lanes instead of sorting every row. None when that doesn't apply."""
+        if s.where is not None or s.limit is None or len(s.order) != 1 or not table.tree:
+            return None
+        column, descending = s.order[0]
+        keep = s.offset + s.limit
+        found = table.index[column].first(keep, descending)
+        if found is None:
+            return None
+        ordered = []
+        for _, rows in found:
+            ordered += table._row_positions(rows)
+        nulls = table.find(column, None) if not descending or len(ordered) < keep else []
+        return (ordered + nulls if descending else nulls + ordered)[:keep]
 
     def _create(self, s: CreateTable) -> Result:
         if s.table in self.database:
@@ -329,17 +470,24 @@ class Interpreter():
     def _select(self, s: Select) -> Result:
         t = self._table(s.table)
         self._check_columns(t, (s.columns or []) + [c for c, _ in s.order])
-        indices = self._matching(t, s.where)
-        # Stable sorts from the last key to the first give a multi-column ORDER BY; NULLs sort first
-        for column, descending in reversed(s.order):
-            vals = values(t.cols[column])
-            nulls = [i for i in indices if vals[i] is None]
-            rest = [i for i in indices if vals[i] is not None]
-            try:
-                rest.sort(key=vals.__getitem__, reverse=descending)
-            except TypeError:
-                raise QueryError(f"Can't order by {column}: it holds values of different types") from None
-            indices = rest + nulls if descending else nulls + rest
+        indices = self._leading(t, s)
+        if indices is None:
+            indices = self._matching(t, s.where)
+            # Stable sorts from the last key to the first give a multi-column ORDER BY; NULLs sort first
+            for column, descending in reversed(s.order):
+                cells = t.cols[column]
+                # Read only the matched rows' values unless they are most of the column
+                if len(indices) * 4 > len(cells):
+                    vals = values(cells)
+                else:
+                    vals = dict(zip(indices, values([cells[i] for i in indices])))
+                nulls = [i for i in indices if vals[i] is None]
+                rest = [i for i in indices if vals[i] is not None]
+                try:
+                    rest.sort(key=vals.__getitem__, reverse=descending)
+                except TypeError:
+                    raise QueryError(f"Can't order by {column}: it holds values of different types") from None
+                indices = rest + nulls if descending else nulls + rest
         indices = indices[s.offset:None if s.limit is None else s.offset + s.limit]
         if s.count:
             return Result(["count"], [[len(indices)]], 1, _plural(len(indices), "row"))

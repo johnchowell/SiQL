@@ -1,0 +1,633 @@
+{
+  "meta": {
+    "python": "3.13.16",
+    "os": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+    "measured_at": "2026-10-22T20:13:15.208684+00:00",
+    "rows": 100000,
+    "queries": 50,
+    "api_probes": 2000,
+    "inner_repeats": 5,
+    "repeats": 5,
+    "cache_max_bytes": 0,
+    "cache_workloads": "100 MB cache; 20,000 distinct cached lookups before each timed insert",
+    "agreement": "identical result digests across builds and repeats"
+  },
+  "base": {
+    "Exact, unique": 5.153172499999999,
+    "Exact, ~195 rows": 140.5433095,
+    "find_where, 2 columns": 477.02851449999997,
+    "Parse a short query": 63.591786500000005,
+    "Range, 0.1% of rows": 7791.24952,
+    "Range, two bounds, 100 rows": 23303.95522,
+    "Range, 1% of rows": 7697.912979999999,
+    "Equality AND range": 14463.73198,
+    "Equality AND equality": 1084.26306,
+    "IN, 50 values": 430.24553999999995,
+    "ORDER BY LIMIT 10, whole table": 21428.06784,
+    "WHERE + ORDER BY LIMIT 5": 7694.19696,
+    "Insert after 20,000 cached reads": 64658.838,
+    "Hit rate, reads between inserts (%)": 0.0
+  },
+  "new": {
+    "Exact, unique": 4.684502,
+    "Exact, ~195 rows": 66.9605025,
+    "find_where, 2 columns": 144.62955499999998,
+    "Parse a short query": 52.157233,
+    "Range, 0.1% of rows": 89.27352,
+    "Range, two bounds, 100 rows": 223.64752000000001,
+    "Range, 1% of rows": 588.55688,
+    "Equality AND range": 553.15794,
+    "Equality AND equality": 252.46813999999998,
+    "IN, 50 values": 332.23892,
+    "ORDER BY LIMIT 10, whole table": 221.08671999999999,
+    "WHERE + ORDER BY LIMIT 5": 295.36150000000004,
+    "Insert after 20,000 cached reads": 339.936,
+    "Hit rate, reads between inserts (%)": 100.0
+  },
+  "runs": {
+    "base": [
+      {
+        "Exact, unique": {
+          "us": 5.1920485,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 155.2239955,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 459.76770150000004,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 62.926093,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 6776.569039999999,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 22995.678799999998,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 7697.912979999999,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 13929.903419999999,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 1006.24482,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 409.41978,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 20253.48328,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 6579.24784,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 65012.112,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 0.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 5.107216,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 125.6603015,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 460.1984885,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 63.591786500000005,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 7558.764840000001,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 22008.2308,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 6957.88882,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 13082.025319999999,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 1129.41702,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 458.39562,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 21428.06784,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 6449.15056,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 64658.838,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 0.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 5.579820499999999,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 140.5433095,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 550.5774375,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 63.791151,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 7791.24952,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 23303.95522,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 7529.25124,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 14664.974040000001,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 1084.26306,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 402.99706,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 21901.480040000002,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 7701.69316,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 59712.522,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 0.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 5.116875,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 177.6235465,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 483.7725095,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 64.03165,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 8868.35696,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 24008.773080000003,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 8093.14382,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 14463.73198,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 1037.2894000000001,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 430.24553999999995,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 21208.197200000002,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 7694.19696,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 53281.792,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 0.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 5.153172499999999,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 136.7114685,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 477.02851449999997,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 60.8020975,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 8338.362140000001,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 27718.2799,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 9705.64426,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 18021.78456,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 1346.04408,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 444.45342,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 25636.32596,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 8010.30454,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 92665.009,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 0.0,
+          "digest": ""
+        }
+      }
+    ],
+    "new": [
+      {
+        "Exact, unique": {
+          "us": 4.288827,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 69.57113199999999,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 149.65879999999999,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 51.650309,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 116.96028,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 223.64752000000001,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 588.55688,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 553.15794,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 252.46813999999998,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 332.23892,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 221.08671999999999,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 284.88653999999997,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 339.936,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 100.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 4.684502,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 73.115911,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 144.62955499999998,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 50.2120535,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 89.27352,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 230.95262,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 620.4757,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 559.6286,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 268.62882,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 340.98728000000006,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 298.50136,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 416.31690000000003,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 355.147,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 100.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 4.175661,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 56.1118635,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 131.856204,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 65.11686,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 84.48844,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 188.50709999999998,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 578.2090800000001,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 509.38735999999994,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 229.30651999999998,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 305.64526,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 201.75862,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 295.36150000000004,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 380.787,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 100.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 7.654948500000001,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 63.504819000000005,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 191.05690299999998,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 52.157233,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 164.26676,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 301.11728,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 795.9157,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 562.20946,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 281.02806,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 358.32196000000005,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 281.35696,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 326.75776,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 290.951,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 100.0,
+          "digest": ""
+        }
+      },
+      {
+        "Exact, unique": {
+          "us": 4.877237,
+          "digest": "f71e81789d4020d0"
+        },
+        "Exact, ~195 rows": {
+          "us": 66.9605025,
+          "digest": "2c848de7ec1b4cb3"
+        },
+        "find_where, 2 columns": {
+          "us": 140.1589915,
+          "digest": "05a000857072d931"
+        },
+        "Parse a short query": {
+          "us": 56.82236,
+          "digest": "0ffcb51471dbe6be"
+        },
+        "Range, 0.1% of rows": {
+          "us": 88.25458,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, two bounds, 100 rows": {
+          "us": 200.61368,
+          "digest": "d6ce9a089fcc6ca2"
+        },
+        "Range, 1% of rows": {
+          "us": 552.85376,
+          "digest": "32090b76d4065b1c"
+        },
+        "Equality AND range": {
+          "us": 518.3580999999999,
+          "digest": "c3ac41c19f89d0f0"
+        },
+        "Equality AND equality": {
+          "us": 235.79139999999998,
+          "digest": "37f755dfa5c96111"
+        },
+        "IN, 50 values": {
+          "us": 311.3042,
+          "digest": "ef5320f8e99f69d8"
+        },
+        "ORDER BY LIMIT 10, whole table": {
+          "us": 210.92669999999998,
+          "digest": "44b01bc47891b454"
+        },
+        "WHERE + ORDER BY LIMIT 5": {
+          "us": 290.85058000000004,
+          "digest": "1a0708515f845d6e"
+        },
+        "Insert after 20,000 cached reads": {
+          "us": 277.263,
+          "digest": ""
+        },
+        "Hit rate, reads between inserts (%)": {
+          "us": 100.0,
+          "digest": ""
+        }
+      }
+    ]
+  }
+}

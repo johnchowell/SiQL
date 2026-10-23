@@ -12,10 +12,10 @@ change with `python tools/dotnet_parity.py --update-api`, then run the parity su
 | Table/Row/Cell/RowStruct; live shared cells | Same class names, Rows/Cols/Struct, Col/Value | Identity, observers, mutation traces |
 | Initial rows, files, tree toggle | initialRows/file/tree constructor options, Tree | Shared initial identity, replay, rebuild |
 | addCols/add/column/select/editByName | AddCols/Add/Column/Select/EditByName | Core traces and library checks |
-| find/find_batch/find_where | Find/FindBatch/FindWhere | Seven modes, duplicate and missing queries, input order |
-| ColumnTree/Branch/skip list/scans | ColumnTree/Branch/SkipList<T>/Search | Branch-local queues, fingers, traces, scans |
+| find/find_batch/find_where/find_range | Find/FindBatch/FindWhere/FindRange | Seven modes, duplicate and missing queries, input order, ranges against row comparisons |
+| ColumnTree/Branch/skip list/scans; estimate/find_range/first, between/nearest | ColumnTree/Branch/SkipList<T>/Search; Estimate/FindRange/First, Between/Nearest | Branch-local queues, fingers, traces, scans, range limits, ordered walks |
 | Lazy add/delete/purge | LazyAdd/LazyDelete/Purge | Immediate visibility, edits, cancellation, rollback |
-| Rolling cache, runtime resize, clear/info | QueryCache/CacheMaxBytes/ClearCache/CacheInfo | LRU, budget, oversized results, per-column invalidation |
+| Rolling cache, runtime resize, clear/info, discard | QueryCache/CacheMaxBytes/ClearCache/CacheInfo/Discard | LRU, budget, oversized results, per-value invalidation |
 | Traversal admissions | CacheTraversedNodes | Compared-node cache admissions |
 | Prefix grouping and diagnostics | CompressedSearch/CompressedInfo/CompressedIndex | Exact partial matches, mutable binary edits |
 | Integer grouping and low/lower seek | IntegerSearch/IntegerInfo/IntegerIndex | Identical packed keys, exact results and bounds |
@@ -24,7 +24,7 @@ change with `python tools/dotnet_parity.py --update-api`, then run the parity su
 | Rollback, save, compact, crash recovery | Same operations and log format | Rollback file unchanged, truncated tail, bidirectional files |
 | Database/table_file | Database/TableFile | Create/open/list/rename/copy/drop, diff helper |
 | Parser, tokenizer, Expr/Statement types, Command | Parser/Token/Expr and Statement records/Command | SQL corpus, Unicode, syntax rejection |
-| All SQL statement families | Interpreter.Execute/ExecuteScript/Run | Rows, columns, row counts, messages, error cases |
+| All SQL statement families; indexed ranges, AND planning, ordered LIMIT | Interpreter.Execute/ExecuteScript/Run | Rows, columns, row counts, messages, error cases, tree on/off agreement |
 | Result/to_dict/text formatting | Result/ToDictionary/ToString/TextFormat.Box | Shared results, console output |
 | Literal values, type names, equality | ColumnType/Values/PythonLiteral | Numeric equality, nested literals, Unicode, bytes, complex |
 | CSV inference/import/export | Csv and Interpreter file operations | Round-trip, inference, invalid-input rollback |

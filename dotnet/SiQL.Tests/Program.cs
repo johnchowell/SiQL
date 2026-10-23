@@ -26,6 +26,9 @@ try
     Assert(Values.Compare(9007199254740993L, 9007199254740992d) > 0, "mixed comparison retains precision");
     Assert(!Values.Equal(9007199254740993L, 9007199254740992d), "mixed equality retains precision");
     Assert(Values.Equal(1, true) && Values.Equal(1L, 1d), "numeric equivalence across types");
+    Assert(!Values.Equal(System.Numerics.BigInteger.Pow(10, 400), double.PositiveInfinity) &&
+        !Values.Equal(new System.Numerics.BigInteger(2), double.PositiveInfinity) && Values.Equal(double.NegativeInfinity, float.NegativeInfinity),
+        "integers never equal infinities");
     try { Values.Compare(double.NaN, 1d); throw new Exception("NaN ordered"); }
     catch (ArgumentException) { }
     foreach (long budget in new long[] { 0, 100_000_000 })
@@ -243,6 +246,123 @@ try
         Assert((await http.GetAsync("missing")).StatusCode == HttpStatusCode.NotFound, "HTTP missing route");
         stop.Cancel();
         await serve;
+    }
+    {
+        // Ordered range reads and walks match sorted keys.
+        var random = new Random(9);
+        var lanes = new SkipList<int>();
+        var keyed = new Dictionary<OrderKey, HashSet<int>>();
+        for (int id = 0; id < 1500; id++)
+        {
+            object raw = random.Next(2) == 0 ? (object)(long)random.Next(-200, 200) : new string(Enumerable.Range(0, random.Next(4)).Select(_ => "ab"[random.Next(2)]).ToArray());
+            var key = keyed.Keys.FirstOrDefault(k => k.CompareTo(new OrderKey(raw)) == 0) ?? new OrderKey(raw);
+            lanes.Insert(key, id);
+            if (!keyed.TryGetValue(key, out var ids))
+                keyed[key] = ids = [];
+            ids.Add(id);
+        }
+        var sorted = keyed.Keys.Order().ToList();
+        for (int trial = 0; trial < 300; trial++)
+        {
+            OrderKey? low = random.Next(5) == 0 ? null : sorted[random.Next(sorted.Count)], high = random.Next(5) == 0 ? null : sorted[random.Next(sorted.Count)];
+            bool lowInclusive = random.Next(2) == 0, highInclusive = random.Next(2) == 0, descending = random.Next(2) == 0;
+            var inside = sorted.Where(k => (low is null || (lowInclusive ? k.CompareTo(low) >= 0 : k.CompareTo(low) > 0)) &&
+                (high is null || (highInclusive ? k.CompareTo(high) <= 0 : k.CompareTo(high) < 0))).ToList();
+            var between = lanes.Between(low, high, lowInclusive, highInclusive)!;
+            Assert(between.Count == inside.Count && between.Zip(inside).All(p => keyed[p.Second].SetEquals(p.First)), "skip-list range");
+            int total = inside.Sum(k => keyed[k].Count);
+            Assert(total == 0 || lanes.Between(low, high, lowInclusive, highInclusive, total - 1) is null, "skip-list range limit");
+            int count = random.Next(40);
+            var start = low is null ? (descending ? sorted.AsEnumerable().Reverse() : sorted) : descending
+                ? sorted.AsEnumerable().Reverse().Where(k => k.CompareTo(low) < 0 || lowInclusive && k.CompareTo(low) == 0)
+                : sorted.Where(k => k.CompareTo(low) > 0 || lowInclusive && k.CompareTo(low) == 0);
+            var expected = new List<OrderKey>();
+            int held = 0;
+            foreach (var k in start)
+            {
+                if (held >= count)
+                    break;
+                expected.Add(k);
+                held += keyed[k].Count;
+            }
+            var walked = lanes.Nearest(low, count, descending, lowInclusive);
+            Assert(walked.Select(p => p.Key).SequenceEqual(expected), "skip-list ordered walk");
+        }
+        // Table ranges agree with comparisons of every row through edits and both lazy queues.
+        object?[] stored = [-5L, -1L, 0L, 1L, 2L, 7L, 10L, 123L, -0.0, 0.5, 1.0, 2.5, 1e3, true, false, "", "a", "ab", "b", "B", "1x", "10", "\u00e9", null];
+        object?[] bounds = [-5L, 0L, 1L, 2.5, 10L, 100L, double.PositiveInfinity, double.NegativeInfinity, true, "", "a", "ab", "b", "1", "y", null];
+        foreach (var (lazyDelete, lazyAdd) in new[] { (false, false), (true, true) })
+        {
+            var ranged = new Table(file: NewFile(), lazyDelete: lazyDelete, lazyAdd: lazyAdd);
+            ranged.AddCols(new Dictionary<string, ColumnType> { ["v"] = ColumnType.Any });
+            new TableDiff(Enumerable.Range(0, 300).Select(i => (DiffOp)new AddRow(i, new Dictionary<string, object?> { ["v"] = stored[random.Next(stored.Length)] }))).Apply(ranged);
+            for (int step = 0; step < 300; step++)
+            {
+                int action = random.Next(10);
+                if (action < 3)
+                    ranged.Add(new Dictionary<string, object?> { ["v"] = stored[random.Next(stored.Length)] });
+                else if (action < 5)
+                    new TableDiff([new DropRow(random.Next(ranged.Rows.Count))]).Apply(ranged);
+                else if (action < 7)
+                    ranged.Cols["v"][random.Next(ranged.Rows.Count)].Value = random.Next(6) == 0 ? double.PositiveInfinity : stored[random.Next(stored.Length)];
+                object? low = bounds[random.Next(bounds.Length)], high = bounds[random.Next(bounds.Length)];
+                bool lowInclusive = random.Next(2) == 0, highInclusive = random.Next(2) == 0;
+                var expected = Enumerable.Range(0, ranged.Rows.Count).Where(i => (low is null || Values.Match(ranged.Cols["v"][i].Value, lowInclusive ? ">=" : ">", low)) &&
+                    (high is null || Values.Match(ranged.Cols["v"][i].Value, highInclusive ? "<=" : "<", high))).ToList();
+                Equal(ranged.FindRange("v", low, high, lowInclusive, highInclusive), expected, "table range");
+            }
+            Assert(ranged.Index!["v"].FindRange(0L, "b") is null, "mixed range bounds use scans");
+            ranged.Cols["v"][0].Value = new MatchesEverything();
+            Assert(ranged.Index!["v"].FindRange(0L, 10L) is null, "custom values use scans");
+            Equal(ranged.FindRange("v", 0L, 10L), Enumerable.Range(0, ranged.Rows.Count).Where(i => Values.Match(ranged.Cols["v"][i].Value, ">=", 0L) && Values.Match(ranged.Cols["v"][i].Value, "<=", 10L)).ToList(), "custom range scan");
+        }
+        // A change discards only results for its old and new values; equal numbers share one result.
+        var cached = new Table(file: NewFile());
+        cached.AddCols(new Dictionary<string, ColumnType> { ["n"] = ColumnType.Any });
+        new TableDiff(Enumerable.Range(0, 100).Select(i => (DiffOp)new AddRow(i, new Dictionary<string, object?> { ["n"] = (long)(i % 10) }))).Apply(cached);
+        for (long v = 0; v < 10; v++)
+            cached.Find("n", v);
+        cached.Add(new Dictionary<string, object?> { ["n"] = 20L });
+        cached.Cols["n"][0].Value = 30L;
+        Assert(cached.CacheInfo.Entries == 9, "per-value invalidation");
+        long hitsBefore = cached.CacheInfo.Hits;
+        cached.Find("n", 5L);
+        Assert(cached.CacheInfo.Hits == hitsBefore + 1, "unrelated value stays cached");
+        cached.Add(new Dictionary<string, object?> { ["n"] = 5.0 });
+        Equal(cached.Find("n", 5L), Enumerable.Range(0, cached.Rows.Count).Where(i => Values.Equal(5L, cached.Cols["n"][i].Value)).ToList(), "equal number invalidates");
+        cached.Cols["n"][1].Value = new MatchesEverything();
+        Assert(cached.CacheInfo.Entries == 0, "custom value drops the column");
+        // Planned AND, range reads and ordered LIMIT agree with the tree switched off.
+        var planner = new Interpreter(Path.Combine(temporary, "planner"));
+        planner.Execute("CREATE TABLE t (id int, a int, b str, c float)");
+        string[] aValues = ["NULL", "-3", "0", "2", "4", "7", "11"], bValues = ["NULL", "''", "'a'", "'ab'", "'b'", "'B'", "'z'"], cValues = ["NULL", "-1.5", "0.0", "2.0", "3.5"];
+        planner.Execute("INSERT INTO t VALUES " + string.Join(", ", Enumerable.Range(0, 300).Select(i => $"({i}, {aValues[random.Next(aValues.Length)]}, {bValues[random.Next(bValues.Length)]}, {cValues[random.Next(cValues.Length)]})")));
+        var plannedTable = planner.Database.Table("t");
+        plannedTable.Cols["c"][4].Value = double.PositiveInfinity;
+        string[] ops = ["=", "!=", "<", "<=", ">", ">="];
+        string Atom()
+        {
+            string column = "abc"[random.Next(3)].ToString();
+            string literal = column == "b" ? bValues[random.Next(bValues.Length)] : aValues[random.Next(aValues.Length)];
+            return random.Next(5) switch
+            {
+                0 => $"{literal} {ops[random.Next(ops.Length)]} {column}",
+                1 => $"{column} IN ({literal}, {aValues[random.Next(aValues.Length)]})",
+                2 => $"a {ops[random.Next(ops.Length)]} c",
+                _ => $"{column} {ops[random.Next(ops.Length)]} {literal}",
+            };
+        }
+        for (int trial = 0; trial < 150; trial++)
+        {
+            string where = string.Join(random.Next(4) == 0 ? " OR " : " AND ", Enumerable.Range(0, random.Next(1, 4)).Select(_ => Atom()));
+            string column = "abc"[random.Next(3)].ToString();
+            string[] queries = [$"SELECT id FROM t WHERE {where}", $"SELECT id FROM t ORDER BY {column} {(random.Next(2) == 0 ? "DESC" : "ASC")} LIMIT {random.Next(0, 40)} OFFSET {random.Next(0, 5)}"];
+            plannedTable.Tree = true;
+            var indexed = queries.Select(q => planner.Execute(q).Rows.Select(r => r.ToList()).ToList()).ToList();
+            plannedTable.Tree = false;
+            var scanned = queries.Select(q => planner.Execute(q).Rows.Select(r => r.ToList()).ToList()).ToList();
+            Equal(indexed, scanned, string.Join("; ", queries));
+        }
     }
     Assert(!AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name!.Contains("Python", StringComparison.OrdinalIgnoreCase)), "No Python runtime loaded");
     Console.WriteLine($"Standalone .NET checks passed: {assertions} assertions.");
