@@ -86,7 +86,8 @@ class PackageLayoutTests(unittest.TestCase):
         root = importlib.import_module(PKG)
         self.assertEqual(sorted(root.__all__),
                          sorted(["Table", "Row", "RowStruct", "Cell", "TableDiff", "table_file", "Database",
-                                 "ErrorHandler", "Command", "Interpreter", "QueryError"]))
+                                 "ErrorHandler", "Command", "Interpreter", "QueryError", "Vector"]))
+        self.assertIs(root.Vector, helpers.Vector)
         self.assertIs(root.Table, Table)
         self.assertIs(root.Row, Row)
         self.assertIs(root.RowStruct, RowStruct)

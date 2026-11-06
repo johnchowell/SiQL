@@ -9,6 +9,7 @@
     TRUNCATE [TABLE] name
     INSERT INTO name [(col, ...)] VALUES (value, ...), ...
     SELECT * | col, ... | COUNT(*) FROM name [WHERE cond] [ORDER BY col [ASC|DESC], ...] [LIMIT n [OFFSET m]]
+    SELECT ... FROM name [WHERE cond] ORDER BY COSINE(col, [x, ...]) | DOT(col, [x, ...]) [DESC|ASC] [LIMIT n ...]
     UPDATE name SET col = value, ... [WHERE cond]
     DELETE FROM name [WHERE cond]
     SHOW TABLES | SHOW FILES
@@ -23,12 +24,16 @@ File management:
 Conditions combine `a = b`, `!=`/`<>`, `<`, `>`, `<=`, `>=`, `IS [NOT] NULL`, `[NOT] IN (...)` and
 `[NOT] LIKE 'pattern'` (`%` any text, `_` one character, case-insensitive) with AND, OR, NOT and parentheses.
 Values are 'strings' or "strings" (double the quote to escape it), numbers, TRUE, FALSE and NULL.
+A vector value (for a `vector` column) is a list of numbers in brackets: [0.1, -2, 3.5e-3].
+COSINE and DOT order rows by their similarity to a query vector; they must be the only ORDER BY key.
 Keywords are case-insensitive; quote a column named like a keyword with backticks: `order`.
 """
 import operator
 import re
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple, NoReturn, Type
+
+from ..helpers.vector import Vector
 
 
 class QueryError(Exception):
@@ -47,7 +52,10 @@ COLUMN_TYPES: dict[str, Type] = {
     "bool": bool, "boolean": bool,
     "list": list, "dict": dict,
     "object": object, "any": object,
+    "vector": Vector,
 }
+
+SIMILARITY = {"COSINE": "cosine", "DOT": "dot"}  # ORDER BY function -> Table.nearest metric
 
 RESERVED = {
     "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "ORDER", "BY", "LIMIT", "OFFSET", "INSERT", "INTO",
@@ -61,7 +69,7 @@ _TOKEN = re.compile(r"""
     | (?P<str>'(?:[^']|'')*'|"(?:[^"]|"")*")
     | (?P<qname>`(?:[^`]|``)+`)
     | (?P<name>[A-Za-z_][A-Za-z0-9_]*)
-    | (?P<op><=|>=|!=|<>|==|[=<>(),*;-])
+    | (?P<op><=|>=|!=|<>|==|[=<>(),*;\[\]-])
     | (?P<bad>.)
 """, re.VERBOSE | re.DOTALL)
 
@@ -264,6 +272,7 @@ class Select:
     count: bool = False
     where: Expr | None = None
     order: list[tuple[str, bool]] = field(default_factory=list)  # (column, descending)
+    similar: tuple[str, str, list, bool] | None = None  # ORDER BY COSINE/DOT: (metric, column, query, descending)
     limit: int | None = None
     offset: int = 0
 
@@ -416,7 +425,23 @@ class Parser():
         word = self.accept_kw("NULL", "NONE", "TRUE", "FALSE")
         if word:
             return {"NULL": None, "NONE": None, "TRUE": True, "FALSE": False}[word]
+        if self.accept_op("["):
+            return self.numbers()
         self.error("Expected a value")
+
+    def numbers(self) -> list:
+        """The numbers of a `[x, ...]` vector literal, after its opening bracket."""
+        items = []
+        if not self.accept_op("]"):
+            while True:
+                negative = bool(self.accept_op("-"))
+                if self.tok.kind != "num":
+                    self.error("Expected a number")
+                items.append(-self.advance().value if negative else self.advance().value)
+                if not self.accept_op(","):
+                    break
+            self.expect_op("]")
+        return items
 
     def whole_number(self) -> int:
         if self.tok.kind != "num" or not isinstance(self.tok.value, int):
@@ -549,10 +574,24 @@ class Parser():
         s = Select(self.ident("a table name"), columns, count, self.where())
         if self.accept_kw("ORDER"):
             self.expect_kw("BY")
-            while True:
-                s.order.append((self.ident("a column name"), self.accept_kw("ASC", "DESC") == "DESC"))
-                if not self.accept_op(","):
-                    break
+            nxt = self.tokens[min(self.i + 1, len(self.tokens) - 1)]
+            if self.tok.kind == "name" and self.tok.value.upper() in SIMILARITY and nxt.kind == "op" \
+                    and nxt.value == "(":
+                metric = SIMILARITY[self.advance().value.upper()]
+                self.expect_op("(")
+                column = self.ident("a column name")
+                self.expect_op(",")
+                self.expect_op("[")
+                query = self.numbers()
+                self.expect_op(")")
+                s.similar = (metric, column, query, self.accept_kw("ASC", "DESC") != "ASC")
+                if self.tok.kind == "op" and self.tok.value == ",":
+                    self.error(f"{metric.upper()}(...) must be the only ORDER BY key")
+            else:
+                while True:
+                    s.order.append((self.ident("a column name"), self.accept_kw("ASC", "DESC") == "DESC"))
+                    if not self.accept_op(","):
+                        break
         if self.accept_kw("LIMIT"):
             s.limit = self.whole_number()
             if self.accept_kw("OFFSET"):

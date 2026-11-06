@@ -10,6 +10,7 @@ from ..managers.database import Database
 from ..helpers.format import box
 from ..helpers.search import scan, scan_match, values, SCAN_OPS, EQ, LT, LE, GT, GE, IS_NULL, NOT_NULL
 from ..helpers.types import type_name
+from ..helpers.vector import Vector
 from .parser import (QueryError, OPERATORS, parse, Statement, Expr, Column, Literal, Compare, And, Or, Not,
                      IsNull, In, Like, CreateTable, DropTable, AddColumn,
                      DropColumn, AlterColumn, Insert, Select, Update, Delete, ShowTables, Describe,
@@ -78,6 +79,11 @@ def _coerce(value, col_type: Type, column: str):
     """Check that `value` fits a column's type. Ints are accepted (as floats) in float columns."""
     if value is None or col_type is object:
         return value
+    if col_type is Vector:
+        try:
+            return Vector.pack(value)
+        except (TypeError, ValueError) as e:
+            raise QueryError(f"Column {column} holds vectors: {e}") from None
     if col_type is float and type(value) is int:
         return float(value)
     if isinstance(value, col_type) and (type(value) is not bool or col_type is bool):
@@ -122,9 +128,16 @@ def _from_text(text: str, col_type: Type):
     try:
         value = ast.literal_eval(text)
     except (ValueError, SyntaxError):
+        if col_type is Vector:
+            return Vector.pack(text)  # base64 of float32 bytes
         if col_type is object:
             return text
         raise ValueError(text) from None
+    if col_type is Vector:
+        try:
+            return Vector.pack(value)
+        except TypeError:
+            raise ValueError(text) from None
     if col_type is not object and not isinstance(value, col_type):
         raise ValueError(text)
     return value
@@ -411,6 +424,27 @@ class Interpreter():
         nulls = table.find(column, None) if not descending or len(ordered) < keep else []
         return (ordered + nulls if descending else nulls + ordered)[:keep]
 
+    def _similar(self, table: Table, s: Select) -> list[int]:
+        """Rows matching WHERE, ordered by ORDER BY COSINE/DOT. Rows without a vector sort like NULLs."""
+        metric, column, query, descending = s.similar
+        positions = None if s.where is None else self._matching(table, s.where)
+        if not descending or s.limit is None:
+            k = None
+        else:
+            k = s.offset + s.limit
+        try:
+            found = table.nearest(column, query, k, positions, metric)
+        except (TypeError, ValueError) as e:
+            raise QueryError(f"Can't order by {metric.upper()}({column}, ...): {e}") from None
+        if not descending:
+            found = sorted(found, key=lambda pair: (pair[1], pair[0]))  # lowest score first, ties by row
+        ordered = [i for i, _ in found]
+        if k is not None and len(ordered) >= k:
+            return ordered
+        listed = set(ordered)
+        nulls = [i for i in (range(len(table.rows)) if positions is None else positions) if i not in listed]
+        return ordered + nulls if descending else nulls + ordered
+
     def _create(self, s: CreateTable) -> Result:
         if s.table in self.database:
             if s.if_not_exists:
@@ -469,8 +503,8 @@ class Interpreter():
 
     def _select(self, s: Select) -> Result:
         t = self._table(s.table)
-        self._check_columns(t, (s.columns or []) + [c for c, _ in s.order])
-        indices = self._leading(t, s)
+        self._check_columns(t, (s.columns or []) + [c for c, _ in s.order] + ([s.similar[1]] if s.similar else []))
+        indices = self._similar(t, s) if s.similar else self._leading(t, s)
         if indices is None:
             indices = self._matching(t, s.where)
             # Stable sorts from the last key to the first give a multi-column ORDER BY; NULLs sort first

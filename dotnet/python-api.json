@@ -122,6 +122,7 @@
       "count": "AnnAssign(target=Name(id='count', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
       "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "order": "AnnAssign(target=Name(id='order', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
+      "similar": "AnnAssign(target=Name(id='similar', ctx=Store()), annotation=BinOp(left=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='str', ctx=Load()), Name(id='list', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "limit": "AnnAssign(target=Name(id='limit', ctx=Store()), annotation=BinOp(left=Name(id='int', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "offset": "AnnAssign(target=Name(id='offset', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Constant(value=0), simple=1)"
     },
@@ -184,6 +185,7 @@
       "idents:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='what', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "column_type:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "literal:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "numbers:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "whole_number:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "script:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "statement:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
@@ -225,11 +227,30 @@
     },
     "py_scan": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load())), arg(arg='op', annotation=Name(id='int', ctx=Load())), arg(arg='value'), arg(arg='value_first', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=False)])",
     "py_scan_match": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load())), arg(arg='fullmatch'), arg(arg='negate', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=False)])",
-    "py_values": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    "py_values": "arguments(posonlyargs=[], args=[arg(arg='cells', annotation=Name(id='list', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "py_vector_normalize": "arguments(posonlyargs=[], args=[arg(arg='matrix'), arg(arg='dim', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "py_vector_top": "arguments(posonlyargs=[], args=[arg(arg='matrix'), arg(arg='dim', annotation=Name(id='int', ctx=Load())), arg(arg='query'), arg(arg='k', annotation=Name(id='int', ctx=Load())), arg(arg='candidates')], kwonlyargs=[], kw_defaults=[], defaults=[UnaryOp(op=USub(), operand=Constant(value=1)), Constant(value=None)])"
   },
   "helpers/types.py": {
     "type_name": "arguments(posonlyargs=[], args=[arg(arg='t', annotation=Name(id='Type', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
     "type_from_name": "arguments(posonlyargs=[], args=[arg(arg='name', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "helpers/vector.py": {
+    "Vector": {
+      "pack:Name(id='staticmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "unpack:Name(id='staticmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "pack": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "to_text": "arguments(posonlyargs=[], args=[arg(arg='data', annotation=Name(id='bytes', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "from_text": "arguments(posonlyargs=[], args=[arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "describe": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "VectorColumn": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "refresh:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='cells', annotation=Name(id='list', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "matrix:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='metric', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "candidates:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='positions')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "search:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='query'), arg(arg='k'), arg(arg='positions'), arg(arg='metric')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    }
   },
   "managers/database.py": {
     "Database": {
@@ -418,6 +439,7 @@
       "find_batch:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col_name'), arg(arg='values')], kwonlyargs=[arg(arg='order'), arg(arg='chained')], kw_defaults=[Constant(value='tree'), Constant(value=True)], defaults=[])",
       "addCols:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])",
       "find_where:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='criteria'), defaults=[])",
+      "nearest:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='column', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Name(id='int', ctx=Load()))), arg(arg='query'), arg(arg='k', annotation=BinOp(left=Name(id='int', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='where'), arg(arg='metric', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=10), Constant(value=None), Constant(value='cosine')])",
       "editByName:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='col'), arg(arg='where'), arg(arg='change')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "add:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='args'), defaults=[])"
     }
