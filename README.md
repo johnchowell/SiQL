@@ -778,6 +778,29 @@ sudo cp siql.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now siql
 ```
 
+## 4. MCP server for AI agents (optional)
+`siql-mcp` lets an AI agent (Claude Code, Claude Desktop or any other MCP client) work with a database folder
+directly. It speaks MCP (JSON-RPC over stdio) and uses only the standard library.
+```
+siql-mcp --data-dir data                     # read-only: SELECT, SHOW TABLES, DESCRIBE, search
+siql-mcp --data-dir data --write             # also INSERT, UPDATE, DELETE, CREATE, ALTER, DROP
+siql-mcp --data-dir data --embed mymodels:embed_text --path /opt/app   # + search by text
+claude mcp add siql -- siql-mcp --data-dir /srv/app/data
+```
+| Tool          | What it does                                                                         |
+|---------------|--------------------------------------------------------------------------------------|
+| `sql_help`    | the query language in short                                                           |
+| `list_tables` | every table with its row count and column types                                       |
+| `describe`    | one table's columns, row count and first rows                                         |
+| `query`       | one statement; at most `--max-rows` rows (default 200) come back                      |
+| `search`      | nearest rows on a vector column, by `text`, by `like` (another row) or by `vector`, with `where` filters and the score |
+
+Vector cells are shown as `<vector N>` and long text is cut at 2000 characters, so results stay small.
+Read-only is the default: a folder must have one writing process only, so give `--write` only when no other
+process writes to it. Each call opens the folder again, so the agent sees what other processes wrote.
+`USE`, `IMPORT` and `EXPORT` are always refused. `--embed` names a function `f(text) -> sequence of numbers`;
+it must be the same model that made the column's vectors.
+
 ## Project layout
 ```
 src/siql/
@@ -785,6 +808,7 @@ src/siql/
 ├── __main__.py          # command line: python -m siql
 ├── _speedups.c          # native C search engine
 ├── demo.py              # demo: python -m siql.demo
+├── mcp.py               # MCP server for AI agents (`siql-mcp`)
 ├── models/              # data structures
 │   ├── row.py           # RowStruct, Cell, Row
 │   ├── table.py         # Table (including saving to / loading from its .siql file)
@@ -816,6 +840,7 @@ src/siql/
     ├── test_interpreter.py  # Database, parser, interpreter, management statements, command line
     ├── test_speedups.py     # C vs Python search functions; scan-based WHERE and ORDER BY
     ├── test_server.py       # HTTP API, config, systemd unit, CLI
+    ├── test_mcp.py          # MCP server: handshake, tools, read-only mode, search
     ├── test_cache.py        # rolling cache coherence, accounting, and resizing
     ├── test_traversal_cache.py # caching inspected skip-list nodes
     ├── test_prefix.py       # hidden prefix groups and exact composite lookup

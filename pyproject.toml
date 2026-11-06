@@ -36,6 +36,7 @@ Issues = "https://github.com/johnchowell/SiQL/issues"
 [project.scripts]
 siql = "siql.controllers.shell:main"
 siql-server = "siql.server.cli:main"
+siql-mcp = "siql.mcp:main"
 
 # Development only, not installed with the package: pip install -e . --group dev
 [dependency-groups]

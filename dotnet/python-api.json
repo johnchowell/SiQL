@@ -272,6 +272,22 @@
       "diff:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='table', annotation=Name(id='Table', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
     }
   },
+  "mcp.py": {
+    "Server": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='data_dir', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[arg(arg='write', annotation=Name(id='bool', ctx=Load())), arg(arg='embed', annotation=BinOp(left=BinOp(left=Subscript(value=Name(id='Callable', ctx=Load()), slice=Tuple(elts=[List(elts=[Name(id='str', ctx=Load())], ctx=Load()), Name(id='Any', ctx=Load())], ctx=Load()), ctx=Load()), op=BitOr(), right=Name(id='str', ctx=Load())), op=BitOr(), right=Constant(value=None))), arg(arg='max_rows', annotation=Name(id='int', ctx=Load()))], kw_defaults=[Constant(value=False), Constant(value=None), Constant(value=200)], defaults=[])",
+      "tools:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "call:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='args', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "db:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "list_tables:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='_args', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "describe:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='args', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "query:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='args', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "search:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='args', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "embedder:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "handle:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='msg', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "serve:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='stdin'), arg(arg='stdout')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None), Constant(value=None)])"
+    },
+    "main": "arguments(posonlyargs=[], args=[arg(arg='argv', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])"
+  },
   "models/cache.py": {
     "cacheable": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
     "QueryCache": {
