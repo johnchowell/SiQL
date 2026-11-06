@@ -6,7 +6,7 @@ from importlib.machinery import ExtensionFileLoader
 MODULES = (
     "_speedups", "_demo",
     "controllers.interpreter", "controllers.parser", "controllers.shell",
-    "helpers.error_handler", "helpers.format", "helpers.search", "helpers.types",
+    "helpers.error_handler", "helpers.format", "helpers.search", "helpers.types", "helpers.vector",
     "managers.database", "managers.table_file",
     "models.cache", "models.diff", "models.prefix", "models.row", "models.table", "models.tree",
     "server.app", "server.cli", "server.config", "server.service",

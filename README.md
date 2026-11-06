@@ -539,6 +539,67 @@ made, as the same line it would be without lazy delete, and the queue exists onl
 at shutdown: a process can exit, or be killed, with deletes still waiting, and the next load replays the file
 without those rows and builds the tree without them.
 
+#### Vector search (semantic search)
+A `Vector` column holds fixed-length float32 vectors, such as image or text embeddings.
+`table.nearest()` returns the rows whose vectors are most similar to a query vector.
+The search is exact (it checks every candidate row), and the scan runs in C.
+
+```python
+from siql import Table, Vector
+
+assets = Table(file="assets.siql")
+assets.addCols(id=str, kind=str, dup_of=str, vec=Vector)
+assets.add(id="a1", kind="character", dup_of="", vec=[0.12, -0.40, 0.91])  # a list, array('f') or NumPy array
+assets.add(id="a2", kind="prop", dup_of="", vec=[0.10, -0.38, 0.92])
+
+query = [0.11, -0.39, 0.92]                 # for example, the embedding of a search image
+# (row index, score) pairs, best first. Equal scores keep the lower row index first.
+for row, score in assets.nearest("vec", query, k=10, where={"kind": "character", "dup_of": ""}):
+    print(assets.rows[row].col("id").value, score)
+```
+
+`Table.nearest(column, query, k=10, where=None, metric="cosine")`:
+- `query`: numbers, `array('f')`, `bytes` or any buffer (a NumPy array works). Its length must be the
+  same as the column's vectors.
+- `k`: the number of rows to return. `None` returns every row that has a vector.
+- `where`: `None`, a dict of equality filters (the same as `find_where`), or an iterable of row indices.
+- `metric`: `"cosine"` (cosine similarity) or `"dot"` (dot product). For vectors that are already unit
+  length, the two give the same order.
+
+Rows with a `None` vector are left out. The table keeps each queried column as a float32 matrix and reuses
+it until a cell changes. Each search compares the column's cells with the matrix, so it sees every change:
+edits, deletes, renames, drops and rollbacks. Rows that were only added extend the matrix. Other changes
+rebuild it on the next search. A cell holds its vector as native float32 `bytes`. Read it back with
+`Vector.unpack(value)` (an `array('f')`) or `numpy.frombuffer(value, numpy.float32)`. NumPy is not needed.
+
+In the table file, the column type is `Vector` and each vector is base64 text of its little-endian float32
+bytes. This is 1.33 times the size of the raw bytes. An older SiQL reads the column as `object` with base64
+text cells. In queries, the type is `vector`, a vector value is `[x, ...]`, and `COSINE` or `DOT` can be the
+only `ORDER BY` key (best first by default; `ASC` gives the least similar first, rows without a vector first):
+
+```sql
+CREATE TABLE assets (id str, kind str, vec vector)
+INSERT INTO assets VALUES ('a1', 'character', [0.12, -0.40, 0.91])
+SELECT id FROM assets WHERE kind = 'character' ORDER BY COSINE(vec, [0.1, -0.4, 0.9]) DESC LIMIT 5
+```
+
+At 100,000 rows of 1,024-dimension vectors (AMD Ryzen 9 9950X, Linux, Python 3.12, native build):
+
+| Operation | Time |
+|---|---:|
+| Insert 100,000 rows in one commit | 5.99 s |
+| First search (builds the matrix) | 0.50 s |
+| Search, k = 10 (median) | 25.5 ms |
+| Search with a two-column `where` dict (median) | 40.7 ms |
+| Search after one appended row | 26.5 ms |
+| Search after one edited row (rebuilds the matrix) | 0.52 s |
+| Load the table file (554 MB) | 11.3 s |
+| NumPy matrix product + argpartition, for comparison | 12.3 ms |
+
+Of the 25.5 ms, the C scan takes 15.6 ms and the check for changed cells takes 2.3 ms.
+The top 10 rows were the same as NumPy's. The C++ core in `native/` and the .NET library do not support
+vector columns yet.
+
 #### Performance: tree off vs on vs lazy delete, and SQLite
 These dated measurements predate the [2026-10-16 CRUD improvements](#crud-performance-review).
 
@@ -686,7 +747,8 @@ print(db.execute("SELECT name FROM people WHERE age > 30 ORDER BY age DESC"))
 | Files | `USE 'folder'` (switch data folder, created if missing)<br>`SHOW FILES` (table, file path, size, row count)<br>`COMPACT [TABLE t]` (rewrite one or every table file without its change history)<br>`IMPORT 'file.csv' INTO t` (creates `t` with inferred types if it doesn't exist)<br>`EXPORT [TABLE] t TO 'file.csv'` |
 
 `WHERE` supports `= != <> < > <= >=`, `IS [NOT] NULL`, `[NOT] IN (...)`, `[NOT] LIKE`, `AND`, `OR`, `NOT` and parentheses.
-Column types: `str`, `int`, `float`, `bool`, `list`, `dict`, `any` (plus SQL aliases like `text`, `integer`, `real`).
+Column types: `str`, `int`, `float`, `bool`, `list`, `dict`, `any`, `vector` (plus SQL aliases like `text`, `integer`, `real`).
+`ORDER BY COSINE(col, [x, ...])` or `DOT(...)` orders rows by vector similarity (see [Vector search](#vector-search-semantic-search)).
 In CSV files an empty field is NULL.
 
 ## 3. HTTP server (optional)
@@ -736,8 +798,9 @@ src/siql/
 ├── helpers/             # shared utilities
 │   ├── error_handler.py # ErrorHandler
 │   ├── format.py        # text table drawing
-│   ├── search.py        # skip list and column scans (Python versions, and loads the C ones)
-│   └── types.py         # column type <-> name conversion for table files
+│   ├── search.py        # skip list, column scans and vector top-k (Python versions, and loads the C ones)
+│   ├── types.py         # column type <-> name conversion for table files
+│   └── vector.py        # Vector column type and the per-column matrices for Table.nearest
 ├── controllers/         # optional query interpreter
 │   ├── parser.py        # tokenizer, parser, QueryError
 │   ├── interpreter.py   # Interpreter, Result, Command
@@ -758,7 +821,8 @@ src/siql/
     ├── test_prefix.py       # hidden prefix groups and exact composite lookup
     ├── test_integer_search.py # full-row integer seeks, backtracking, and mutations
     ├── test_lazy_add.py     # deferred insertion with immediate visibility
-    └── test_tree.py         # search tree structure, upkeep and lookups
+    ├── test_tree.py         # search tree structure, upkeep and lookups
+    └── test_vector.py       # vector columns, nearest (C vs Python), ORDER BY COSINE/DOT
 benchmarks/crud.py           # CRUD timings with the tree on and off; writes docs/benchmarks/
 benchmarks/refresh.py        # sequential full refresh of every dataset, graph, and README table
 benchmarks/update_readme.py  # regenerate README measurements from saved JSON

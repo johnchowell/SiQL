@@ -6,12 +6,13 @@ from operator import attrgetter
 from typing import Type, Self
 
 from .row import RowStruct, Cell, Row
-from .diff import TableDiff, DiffOp, AddCol, AddRow, SetCell, commit_line
+from .diff import TableDiff, DiffOp, AddCol, DropCol, SetColType, RenameCol, AddRow, SetCell, commit_line
 from .tree import ColumnTree
 from .cache import QueryCache, DEFAULT_CACHE_BYTES
 from .prefix import CompressedIndex, IntegerIndex
 from ..helpers.format import box
 from ..helpers.search import scan, EQ, LT, LE, GT, GE
+from ..helpers.vector import Vector, VectorColumn, pack as pack_vector, to_text as vector_text, describe
 
 FILE_ENCODING = "utf-8"
 _POSITION = attrgetter("_position")
@@ -59,6 +60,7 @@ class Table():
         self._deleted = []  # sorted map positions removed since then, independent of tree cleanup
         self._file = (file if file is not None else f"{uuid.uuid4().hex}.siql")
         self._buffer = io.StringIO()
+        self._vectors: dict[str, VectorColumn] = {}  # column name -> matrices for `nearest`
 
         if os.path.exists(self._file):
             self._load()
@@ -72,7 +74,7 @@ class Table():
             self.cols = {name: [r.col(name) for r in self.rows] for name in self.struct.column_names}
             initial = [AddCol(n, ty, i) for i, (n, ty) in enumerate(zip(self.struct.column_names, self.struct.columns))]
             initial += [AddRow(i, {n: r.col(n).value for n in self.struct.column_names}) for i, r in enumerate(self.rows)]
-            self._buffer.write(commit_line(initial))
+            self._buffer.write(commit_line(self._vector_ops(initial)[1]))
         self.save()
         self.tree = tree
         self.compressed_search = compressed_search
@@ -165,8 +167,9 @@ class Table():
         return self._query_cache.info
 
     def clear_cache(self):
-        """Release cached query results; the table and its index remain intact."""
+        """Release cached query results and vector matrices; the table and its index remain intact."""
         self._query_cache.clear()
+        self._vectors.clear()
 
     @property
     def tree(self) -> bool:
@@ -272,7 +275,7 @@ class Table():
         ops += [AddRow(i, {n: r.col(n).value for n in names}) for i, r in enumerate(self.rows)]
         tmp = self._file + ".tmp"
         with open(tmp, "w", encoding=FILE_ENCODING) as f:
-            f.write(commit_line(ops) if ops else "")
+            f.write(commit_line(self._vector_ops(ops)[1]) if ops else "")
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, self._file)
@@ -285,7 +288,8 @@ class Table():
         """
         if not ops:
             return
-        line = commit_line(ops)  # raises TypeError for unwritable values before anything changes
+        ops, written = self._vector_ops(ops)
+        line = commit_line(written)  # raises TypeError for unwritable values before anything changes
         undo = []
         try:
             for op in ops:
@@ -296,6 +300,41 @@ class Table():
             raise
         self._buffer.write(line)
         self.save()
+
+    def _vector_ops(self, ops:list[DiffOp]) -> tuple[list[DiffOp], list[DiffOp]]:
+        """(ops to apply, ops to write) with each vector cell as float32 bytes to apply and base64 text to write.
+        Follows the column changes in `ops`, so a vector column added in the same change is handled too.
+        Raises TypeError or ValueError for a value that isn't a vector, before anything changes."""
+        names = {n for n, t in zip(self.struct.column_names, self.struct.columns) if t is Vector}
+        if not names and not any(type(op) in (AddCol, SetColType) and op.type is Vector for op in ops):
+            return ops, ops
+        applied, written = [], []
+        for op in ops:
+            kind = type(op)
+            if kind is AddRow and not names.isdisjoint(op.values):
+                values = {k: pack_vector(v) if k in names else v for k, v in op.values.items()}
+                applied.append(AddRow(op.index, values))
+                written.append(AddRow(op.index, {k: vector_text(v) if k in names and v is not None else v
+                                                 for k, v in values.items()}))
+                continue
+            if kind is SetCell and op.col in names:
+                value = pack_vector(op.value)
+                applied.append(SetCell(op.row, op.col, value))
+                written.append(SetCell(op.row, op.col, None if value is None else vector_text(value)))
+                continue
+            if kind is AddCol or kind is SetColType:
+                if op.type is Vector:
+                    names.add(op.name)
+                else:
+                    names.discard(op.name)
+            elif kind is DropCol:
+                names.discard(op.name)
+            elif kind is RenameCol and op.name in names:
+                names.discard(op.name)
+                names.add(op.new_name)
+            applied.append(op)
+            written.append(op)
+        return applied, written
 
     # Low-level mutations used by DiffOps. They don't log (go through _commit for that) and either
     # raise before changing anything or return a function that undoes the change.
@@ -344,6 +383,20 @@ class Table():
     def _set_col_type(self, name:str, type:Type):
         i = self.struct.col(name)
         old = self.struct.columns[i]
+        if type is Vector and old is not Vector:
+            # Vector cells are float32 bytes; convert the column's values (raises before anything changes)
+            cells = self.cols[name]
+            olds = [c.value for c in cells]
+            packed = [pack_vector(v) for v in olds]
+            for c, v in zip(cells, packed):
+                c.value = v
+            self.struct.columns[i] = type
+
+            def undo():
+                for c, v in zip(cells, olds):
+                    c.value = v
+                self.struct.columns[i] = old
+            return undo
         self.struct.columns[i] = type
         return lambda: self.struct.columns.__setitem__(i, old)
 
@@ -359,6 +412,8 @@ class Table():
         return lambda: self._rename_col(new_name, name)
 
     def _insert_row(self, index:int, values:dict):
+        if Vector in self.struct.columns:
+            values = self._pack_vectors(values)
         r = Row(self.struct)
         for name, value in values.items():
             r.col(name).value = value
@@ -386,9 +441,16 @@ class Table():
 
     def _set_cell(self, row:int, col:str, value):
         cell = self.rows[row].col(col)
+        if self.struct.columns[self.struct.col(col)] is Vector:
+            value = pack_vector(value)  # base64 text from the file, or a value given to DiffOp.apply directly
         old = cell.value
         cell.value = value
         return lambda: setattr(cell, "value", old)
+
+    def _pack_vectors(self, values:dict) -> dict:
+        """Row values with each vector cell as float32 bytes (the file gives base64 text)."""
+        names = {n for n, t in zip(self.struct.column_names, self.struct.columns) if t is Vector}
+        return {k: pack_vector(v) if k in names else v for k, v in values.items()}
 
     def column(self, name: str | int):
         """Yield cells in a column
@@ -406,7 +468,9 @@ class Table():
             return ""
 
         head = [f"{n}: {t.__name__}" for n, t in zip(names, self.struct.columns)]
-        body = [[str(row.col(j)) for j in range(len(names))] for row in self.rows]
+        vectors = [t is Vector for t in self.struct.columns]
+        body = [[describe(row.col(j).value) if vectors[j] else str(row.col(j)) for j in range(len(names))]
+                for row in self.rows]
         return box(head, body)
 
     def select(self, var, col_name=None):
@@ -539,6 +603,43 @@ class Table():
             if not rows:
                 break
         return self._row_positions(rows)
+
+    def nearest(self, column: str | int, query, k: int | None = 10, where=None, metric: str = "cosine"):
+        """The `k` rows whose vector in a column is most like `query`, as (row index, score) pairs, best first.
+        Equal scores keep the lower row index first. Rows without a vector (None) are left out.
+        Args:
+            column: column name or index; usually a `Vector` column, but any column of vectors works
+            query: vector of the same length as the column's vectors (numbers, `array('f')`, bytes, any buffer)
+            k: number of rows to return; None returns every row with a vector
+            where: None (every row), a dict of column=value equality filters (as `find_where`),
+                or row indices to choose from
+            metric: 'cosine' (cosine similarity, from -1 to 1) or 'dot' (dot product)
+        Example:
+            `table.nearest("vec", embedding, k=5, where={"kind": "character"})`
+
+        The scan is exact. The column's vectors are kept as a float32 matrix that is reused until a cell of the
+        column changes, so repeated queries don't decode the cells again.
+        """
+        if isinstance(column, int):
+            column = self.struct.column_names[column]
+        cells = self.cols[column]
+        if k is not None and (type(k) is not int or k < 0):
+            raise ValueError(f"k must be a whole number of rows or None, got {k!r}")
+        for name in [n for n in self._vectors if n not in self.cols]:
+            del self._vectors[name]  # dropped or renamed columns
+        vectors = self._vectors.get(column)
+        if vectors is None:
+            vectors = self._vectors[column] = VectorColumn()
+        vectors.refresh(cells)
+        if where is None:
+            positions = None
+        elif isinstance(where, dict):
+            positions = self.find_where(**where)
+        else:
+            positions = list(where)
+        if k == 0 or positions == []:
+            return []
+        return vectors.search(query, k, positions, metric)
 
     def editByName(self, col, where, change):
         """Edit cells by column name and value. Will edit multiple cells if they fit the condition.

@@ -1,8 +1,11 @@
 """Search primitives used by the tree and the interpreter. Each has a C version in `siql._speedups`, used when it was
 compiled; set SIQL_PURE_PYTHON=1 to use these Python versions instead."""
+import heapq
+import math
 import operator
 import os
 import random
+from array import array
 
 EQ, NE, LT, LE, GT, GE, IS_NULL, NOT_NULL = range(8)
 SCAN_OPS = {"=": EQ, "==": EQ, "!=": NE, "<>": NE, "<": LT, "<=": LE, ">": GT, ">=": GE}
@@ -219,7 +222,46 @@ def py_values(cells: list) -> list:
     return [cell._value for cell in cells]
 
 
+def _floats(buffer, code: str = "f") -> memoryview:
+    return memoryview(buffer).cast("B").cast(code)
+
+
+def py_vector_normalize(matrix, dim: int) -> None:
+    """Scale each `dim`-float row of a writable float32 buffer to unit length, in place. Zero rows stay zero."""
+    floats = _floats(matrix)
+    if dim <= 0 or len(floats) % dim:
+        raise ValueError("the buffer doesn't hold whole rows of `dim` float32 values")
+    for start in range(0, len(floats), dim):
+        row = floats[start:start + dim]
+        norm = math.sqrt(math.fsum(x * x for x in row))
+        if norm > 0:
+            floats[start:start + dim] = array("f", [x / norm for x in row])
+
+
+def py_vector_top(matrix, dim: int, query, k: int = -1, candidates=None) -> list[tuple[int, float]]:
+    """(row, score) pairs of the `k` rows of a float32 matrix (every row if k < 0) with the highest dot product
+    with `query`, best first. Equal scores keep the lower row first; nan scores are left out.
+    `candidates` (int64 row numbers, None: every row) limits the rows checked."""
+    floats, q = _floats(matrix), _floats(query).tolist()
+    if dim <= 0 or len(floats) % dim or len(q) != dim:
+        raise ValueError("the matrix and the query must hold rows of `dim` float32 values")
+    n = len(floats) // dim
+    rows = range(n) if candidates is None else _floats(candidates, "q")
+    scored = []
+    for r in rows:
+        if not 0 <= r < n:
+            raise IndexError(f"candidate row {r} is out of range")
+        score = math.fsum(map(operator.mul, floats[r * dim:(r + 1) * dim], q))
+        if score == score:
+            scored.append((-score, r))
+    if k == 0:
+        return []
+    scored = sorted(scored) if k < 0 or k >= len(scored) else heapq.nsmallest(k, scored)
+    return [(r, -score) for score, r in scored]
+
+
 SkipList, scan, scan_match, values = PySkipList, py_scan, py_scan_match, py_values
+vector_top, vector_normalize = py_vector_top, py_vector_normalize
 SPEEDUPS = False
 if os.environ.get("SIQL_PURE_PYTHON") != "1":
     try:
@@ -228,4 +270,5 @@ if os.environ.get("SIQL_PURE_PYTHON") != "1":
         pass
     else:
         SkipList, scan, scan_match, values = _speedups.SkipList, _speedups.scan, _speedups.scan_match, _speedups.values
+        vector_top, vector_normalize = _speedups.vector_top, _speedups.vector_normalize
         SPEEDUPS = True

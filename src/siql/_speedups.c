@@ -6,8 +6,11 @@
 #define Py_LIMITED_API 0x030B0000
 #endif
 #include <Python.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_HEIGHT 16
 
@@ -675,6 +678,206 @@ static PyObject *values(PyObject *module, PyObject *cells)
     return out;
 }
 
+/* ---- Vector search --------------------------------------------------------------------------------------------- */
+
+typedef struct {
+    float score;
+    Py_ssize_t row;
+} Scored;
+
+/* 1 if `a` ranks before `b`: the higher score first, then the lower row */
+static int ranks_before(const Scored *a, const Scored *b)
+{
+    return a->score > b->score || (a->score == b->score && a->row < b->row);
+}
+
+static int compare_scored(const void *a, const void *b)
+{
+    return ranks_before((const Scored *)a, (const Scored *)b) ? -1 : ranks_before((const Scored *)b, (const Scored *)a);
+}
+
+/* Eight separate sums let the compiler use SIMD lanes without reordering one long chain of additions */
+static float dot(const float *a, const float *b, Py_ssize_t dim)
+{
+    float sum[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    Py_ssize_t i = 0;
+    for (; i + 8 <= dim; i += 8) {
+        for (int j = 0; j < 8; j++) {
+            sum[j] += a[i + j] * b[i + j];
+        }
+    }
+    float total = ((sum[0] + sum[1]) + (sum[2] + sum[3])) + ((sum[4] + sum[5]) + (sum[6] + sum[7]));
+    for (; i < dim; i++) {
+        total += a[i] * b[i];
+    }
+    return total;
+}
+
+/* heap[0] is the worst kept entry. Move heap[i] down to its place. */
+static void sift_down(Scored *heap, Py_ssize_t size, Py_ssize_t i)
+{
+    for (;;) {
+        Py_ssize_t worst = i, left = 2 * i + 1, right = left + 1;
+        if (left < size && ranks_before(&heap[worst], &heap[left])) worst = left;
+        if (right < size && ranks_before(&heap[worst], &heap[right])) worst = right;
+        if (worst == i) return;
+        Scored swap = heap[i];
+        heap[i] = heap[worst];
+        heap[worst] = swap;
+        i = worst;
+    }
+}
+
+static void sift_up(Scored *heap, Py_ssize_t i)
+{
+    while (i > 0) {
+        Py_ssize_t parent = (i - 1) / 2;
+        if (!ranks_before(&heap[parent], &heap[i])) return;
+        Scored swap = heap[i];
+        heap[i] = heap[parent];
+        heap[parent] = swap;
+        i = parent;
+    }
+}
+
+static PyObject *vector_top(PyObject *module, PyObject *args)
+{
+    PyObject *matrix_obj, *query_obj, *candidates_obj = Py_None;
+    Py_ssize_t dim, k = -1;
+    if (!PyArg_ParseTuple(args, "OnO|nO:vector_top", &matrix_obj, &dim, &query_obj, &k, &candidates_obj)) {
+        return NULL;
+    }
+    Py_buffer matrix, query, candidates;
+    candidates.buf = NULL;
+    if (PyObject_GetBuffer(matrix_obj, &matrix, PyBUF_SIMPLE) < 0) {
+        return NULL;
+    }
+    if (PyObject_GetBuffer(query_obj, &query, PyBUF_SIMPLE) < 0) {
+        PyBuffer_Release(&matrix);
+        return NULL;
+    }
+    PyObject *out = NULL;
+    Scored *kept = NULL;
+    float *q = NULL;
+    if (candidates_obj != Py_None && PyObject_GetBuffer(candidates_obj, &candidates, PyBUF_SIMPLE) < 0) {
+        goto done;
+    }
+    Py_ssize_t row_bytes = dim * (Py_ssize_t)sizeof(float);
+    if (dim <= 0 || matrix.len % row_bytes != 0 || query.len != row_bytes) {
+        PyErr_SetString(PyExc_ValueError, "the matrix and the query must hold rows of `dim` float32 values");
+        goto done;
+    }
+    if (candidates.buf != NULL && candidates.len % (Py_ssize_t)sizeof(int64_t) != 0) {
+        PyErr_SetString(PyExc_ValueError, "candidates must be int64 row numbers");
+        goto done;
+    }
+    Py_ssize_t n = matrix.len / row_bytes;
+    Py_ssize_t count = candidates.buf == NULL ? n : candidates.len / (Py_ssize_t)sizeof(int64_t);
+    /* Copy the query, as a `bytes` object's data need not be aligned for float reads. The matrix is a bytearray,
+       whose data is always aligned. */
+    q = PyMem_Malloc((size_t)row_bytes);
+    if (q == NULL) {
+        PyErr_NoMemory();
+        goto done;
+    }
+    memcpy(q, query.buf, (size_t)row_bytes);
+    const float *rows = (const float *)matrix.buf;
+    const int64_t *picked = (const int64_t *)candidates.buf;
+    for (Py_ssize_t c = 0; picked != NULL && c < count; c++) {
+        if (picked[c] < 0 || picked[c] >= n) {
+            PyErr_Format(PyExc_IndexError, "candidate row %lld is out of range", (long long)picked[c]);
+            goto done;
+        }
+    }
+    Py_ssize_t keep = (k < 0 || k > count) ? count : k;
+    kept = PyMem_Malloc((size_t)(keep > 0 ? keep : 1) * sizeof(Scored));
+    if (kept == NULL) {
+        PyErr_NoMemory();
+        goto done;
+    }
+    Py_ssize_t size = 0;
+    if (keep > 0) {
+        Py_BEGIN_ALLOW_THREADS
+        for (Py_ssize_t c = 0; c < count; c++) {
+            Scored entry;
+            entry.row = picked == NULL ? c : (Py_ssize_t)picked[c];
+            entry.score = dot(rows + entry.row * dim, q, dim);
+            if (entry.score != entry.score) {
+                continue;  /* nan */
+            }
+            if (size < keep) {
+                kept[size] = entry;
+                sift_up(kept, size++);
+            }
+            else if (ranks_before(&entry, &kept[0])) {
+                kept[0] = entry;
+                sift_down(kept, size, 0);
+            }
+        }
+        qsort(kept, (size_t)size, sizeof(Scored), compare_scored);
+        Py_END_ALLOW_THREADS
+    }
+    out = PyList_New(size);
+    if (out == NULL) {
+        goto done;
+    }
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *pair = Py_BuildValue("(nd)", kept[i].row, (double)kept[i].score);
+        if (pair == NULL) {
+            Py_CLEAR(out);
+            goto done;
+        }
+        PyList_SetItem(out, i, pair);  /* steals pair */
+    }
+done:
+    PyMem_Free(kept);
+    PyMem_Free(q);
+    if (candidates.buf != NULL) {
+        PyBuffer_Release(&candidates);
+    }
+    PyBuffer_Release(&query);
+    PyBuffer_Release(&matrix);
+    return out;
+}
+
+static PyObject *vector_normalize(PyObject *module, PyObject *args)
+{
+    PyObject *matrix_obj;
+    Py_ssize_t dim;
+    if (!PyArg_ParseTuple(args, "On:vector_normalize", &matrix_obj, &dim)) {
+        return NULL;
+    }
+    Py_buffer matrix;
+    if (PyObject_GetBuffer(matrix_obj, &matrix, PyBUF_WRITABLE) < 0) {
+        return NULL;
+    }
+    Py_ssize_t row_bytes = dim * (Py_ssize_t)sizeof(float);
+    if (dim <= 0 || matrix.len % row_bytes != 0) {
+        PyBuffer_Release(&matrix);
+        PyErr_SetString(PyExc_ValueError, "the buffer doesn't hold whole rows of `dim` float32 values");
+        return NULL;
+    }
+    float *values = (float *)matrix.buf;
+    Py_ssize_t n = matrix.len / row_bytes;
+    Py_BEGIN_ALLOW_THREADS
+    for (Py_ssize_t r = 0; r < n; r++) {
+        float *row = values + r * dim;
+        double sum = 0;
+        for (Py_ssize_t i = 0; i < dim; i++) {
+            sum += (double)row[i] * row[i];
+        }
+        double norm = sqrt(sum);
+        if (norm > 0) {
+            for (Py_ssize_t i = 0; i < dim; i++) {
+                row[i] = (float)(row[i] / norm);
+            }
+        }
+    }
+    Py_END_ALLOW_THREADS
+    PyBuffer_Release(&matrix);
+    Py_RETURN_NONE;
+}
+
 /* ---- Module ---------------------------------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {
@@ -683,6 +886,10 @@ static PyMethodDef module_methods[] = {
     {"scan_match", scan_match, METH_VARARGS,
      "scan_match(cells, fullmatch, negate=False) -> indices of string cells where fullmatch(value) != negate."},
     {"values", values, METH_O, "values(cells) -> list of the cells' values."},
+    {"vector_top", vector_top, METH_VARARGS,
+     "vector_top(matrix, dim, query, k=-1, candidates=None) -> (row, score) pairs with the highest dot products."},
+    {"vector_normalize", vector_normalize, METH_VARARGS,
+     "vector_normalize(matrix, dim) -> None; scales each float32 row to unit length in place."},
     {NULL, NULL, 0, NULL},
 };
 

@@ -32,6 +32,12 @@ change with `python tools/dotnet_parity.py --update-api`, then run the parity su
 | TOML/SIQL_TOKEN/systemd/CLI/demo | ServerConfig.Load/Service.SystemdUnit/SiQL.Cli | Compiled CLI and package smoke tests |
 | ErrorHandler | ErrorHandler | Same placeholder public type |
 
+## Not yet ported
+
+| Python surface | Status |
+|---|---|
+| `Vector` column type, `Table.nearest` (cosine/dot top-k), SQL `vector` type, `[x, ...]` literals and `ORDER BY COSINE/DOT(col, [...])` | Python only. C# reads the `Vector` type name as `object` and each cell as its base64 text. A C# compact or `SetColType` writes the column back as `object`, so do not let C# rewrite a table that has vector columns. The experimental C++ core in `native/` does not support vector columns either. |
+
 CLR types/exceptions, assembly layout, launcher syntax, allocation sizes, and the absence of
 the Python GIL are runtime differences. Search defaults, file/data semantics, SQL, and feature
 switches are shared. Python classes are not CLR classes; applications supply native CLR values
