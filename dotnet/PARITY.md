@@ -47,3 +47,4 @@ The [CRUD methods review](../docs/CRUD_PERFORMANCE.md) documents the shared dele
 optimization and runtime-specific serialization/comparison improvements. Regressions cover
 eager cleanup, offset rebuilds, append/middle insert, rollback, exact mixed numeric comparison,
 and Unicode scalar ordering. Existing feature switches and file semantics remain shared.
+| `siql-mcp` MCP server (`siql.mcp`) for AI agents | Python only. It is a tool around the Python package, like `siql-server`'s HTTP API it uses the interpreter; a C# MCP server is not planned. |
