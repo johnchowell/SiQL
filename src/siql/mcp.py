@@ -28,13 +28,13 @@ from importlib import import_module
 from typing import Any, Callable
 
 from .controllers import Interpreter, QueryError
-from .controllers.parser import Describe, Select, ShowTables, parse
+from .controllers.parser import Describe, Select, SelectQuery, ShowTables, parse
 from .helpers.types import type_name
 from .helpers.vector import Vector
 from .managers import Database
 
 PROTOCOL = "2025-06-18"
-READ_ONLY = (Select, ShowTables, Describe)
+READ_ONLY = (Select, SelectQuery, ShowTables, Describe)
 TEXT_LIMIT = 2000  # longer string cells are cut, so one big cell does not fill the agent's context
 
 SQL_HELP = """SiQL query language (one statement per query call):
@@ -42,6 +42,12 @@ SQL_HELP = """SiQL query language (one statement per query call):
   SELECT a, b FROM t WHERE x = 1 AND (y > 2 OR z LIKE 'ab%') AND w IN (1, 2) AND v IS NOT NULL
          ORDER BY a DESC LIMIT 10 OFFSET 20;
   SELECT COUNT(*) FROM t WHERE ...;     SELECT DISTINCT a FROM t;
+  Joins and counts: SELECT a.id, COUNT(p.id) AS n FROM t a LEFT JOIN t p ON p.parent = a.id
+         WHERE a.parent IS NULL GROUP BY a.id HAVING n > 1 ORDER BY n DESC;
+  [INNER|LEFT|CROSS] JOIN, comma joins, aliases (t AS a, t a), a.* and a.col, GROUP BY, HAVING,
+  COUNT(*), COUNT(DISTINCT x), SUM, AVG, MIN, MAX, + - * /, AS names, COALESCE, IFNULL, LOWER, UPPER,
+  LENGTH, ABS, ROUND, and subqueries: (SELECT COUNT(*) FROM u WHERE u.k = t.id) AS n, x IN (SELECT ...),
+  EXISTS (SELECT ...), FROM (SELECT ...) AS d.
   SELECT id FROM t WHERE kind = 'x' ORDER BY COSINE(vec, [0.1, -0.4, ...]) DESC LIMIT 5;   (also DOT)
   With write access: INSERT INTO t VALUES (...), (...); UPDATE t SET a = 1 WHERE ...; DELETE FROM t WHERE ...;
   CREATE TABLE t (a str, b int, c float, d bool, v vector); ALTER TABLE t ADD COLUMN e str; DROP TABLE t;

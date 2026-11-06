@@ -37,6 +37,7 @@
     },
     "Column": {
       "name": "AnnAssign(target=Name(id='name', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
     },
@@ -88,6 +89,52 @@
       "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
     },
+    "hashable": "arguments(posonlyargs=[], args=[arg(arg='v')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "Arith": {
+      "left": "AnnAssign(target=Name(id='left', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "op": "AnnAssign(target=Name(id='op', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "right": "AnnAssign(target=Name(id='right', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Neg": {
+      "item": "AnnAssign(target=Name(id='item', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Func": {
+      "name": "AnnAssign(target=Name(id='name', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "args": "AnnAssign(target=Name(id='args', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Aggregate": {
+      "func": "AnnAssign(target=Name(id='func', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
+      "arg": "AnnAssign(target=Name(id='arg', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)",
+      "distinct": "AnnAssign(target=Name(id='distinct', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "key": "AnnAssign(target=Name(id='key', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value=''), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "compute:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='rows', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='dict', ctx=Load()), ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Subquery": {
+      "query": "AnnAssign(target=Name(id='query', ctx=Store()), annotation=Name(id='Any', ctx=Load()), simple=1)",
+      "run": "AnnAssign(target=Name(id='run', ctx=Store()), annotation=Name(id='Any', ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default', value=Constant(value=None)), keyword(arg='compare', value=Constant(value=False)), keyword(arg='repr', value=Constant(value=False))]), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "InSelect": {
+      "operand": "AnnAssign(target=Name(id='operand', ctx=Store()), annotation=Name(id='Expr', ctx=Load()), simple=1)",
+      "query": "AnnAssign(target=Name(id='query', ctx=Store()), annotation=Name(id='Any', ctx=Load()), simple=1)",
+      "negate": "AnnAssign(target=Name(id='negate', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "run": "AnnAssign(target=Name(id='run', ctx=Store()), annotation=Name(id='Any', ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default', value=Constant(value=None)), keyword(arg='compare', value=Constant(value=False)), keyword(arg='repr', value=Constant(value=False))]), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "columns:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "Exists": {
+      "query": "AnnAssign(target=Name(id='query', ctx=Store()), annotation=Name(id='Any', ctx=Load()), simple=1)",
+      "run": "AnnAssign(target=Name(id='run', ctx=Store()), annotation=Name(id='Any', ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default', value=Constant(value=None)), keyword(arg='compare', value=Constant(value=False)), keyword(arg='repr', value=Constant(value=False))]), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
     "CreateTable": {
       "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=Name(id='str', ctx=Load()), simple=1)",
       "columns": "AnnAssign(target=Name(id='columns', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='Type', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), simple=1)",
@@ -123,6 +170,29 @@
       "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "order": "AnnAssign(target=Name(id='order', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
       "similar": "AnnAssign(target=Name(id='similar', ctx=Store()), annotation=BinOp(left=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='str', ctx=Load()), Name(id='list', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "limit": "AnnAssign(target=Name(id='limit', ctx=Store()), annotation=BinOp(left=Name(id='int', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "offset": "AnnAssign(target=Name(id='offset', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Constant(value=0), simple=1)"
+    },
+    "Star": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)"
+    },
+    "Source": {
+      "table": "AnnAssign(target=Name(id='table', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)",
+      "query": "AnnAssign(target=Name(id='query', ctx=Store()), annotation=Name(id='Any', ctx=Load()), value=Constant(value=None), simple=1)",
+      "alias": "AnnAssign(target=Name(id='alias', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "join": "AnnAssign(target=Name(id='join', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "on": "AnnAssign(target=Name(id='on', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "name:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "SelectQuery": {
+      "items": "AnnAssign(target=Name(id='items', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='Any', ctx=Load()), BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), Name(id='str', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), simple=1)",
+      "sources": "AnnAssign(target=Name(id='sources', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Source', ctx=Load()), ctx=Load()), simple=1)",
+      "distinct": "AnnAssign(target=Name(id='distinct', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=False), simple=1)",
+      "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "group": "AnnAssign(target=Name(id='group', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
+      "having": "AnnAssign(target=Name(id='having', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "order": "AnnAssign(target=Name(id='order', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='Expr', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='list', ctx=Load()))]), simple=1)",
+      "similar": "AnnAssign(target=Name(id='similar', ctx=Store()), annotation=BinOp(left=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Name(id='Column', ctx=Load()), Name(id='list', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "limit": "AnnAssign(target=Name(id='limit', ctx=Store()), annotation=BinOp(left=Name(id='int', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "offset": "AnnAssign(target=Name(id='offset', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Constant(value=0), simple=1)"
     },
@@ -173,6 +243,8 @@
     "parse": "arguments(posonlyargs=[], args=[arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
     "Parser": {
       "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='text', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "peek:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='n', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=1)])",
+      "is_op:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='op', annotation=Name(id='str', ctx=Load())), arg(arg='n', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=0)])",
       "tok:Name(id='property', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "advance:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "error:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='message', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
@@ -190,13 +262,65 @@
       "script:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "statement:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "path:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "query:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "is_kw_at:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='n', annotation=Name(id='int', ctx=Load()))], vararg=arg(arg='words', annotation=Name(id='str', ctx=Load())), kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "alias:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "item:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "source:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='join', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "column:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "where:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "expr:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "and_expr:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "not_expr:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "predicate:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
-      "operand:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
-    }
+      "additive:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "term:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "factor:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "operand:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "aggregate:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "plain": "arguments(posonlyargs=[], args=[arg(arg='e')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+  },
+  "controllers/query.py": {
+    "Ref": {
+      "key": "AnnAssign(target=Name(id='key', ctx=Store()), annotation=Name(id='Any', ctx=Load()), simple=1)",
+      "eval:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='row')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "walk": "arguments(posonlyargs=[], args=[arg(arg='e')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "rewrite": "arguments(posonlyargs=[], args=[arg(arg='e'), arg(arg='fn', annotation=Subscript(value=Name(id='Callable', ctx=Load()), slice=Tuple(elts=[List(elts=[Name(id='Expr', ctx=Load())], ctx=Load()), BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None))], ctx=Load()), ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "conjuncts": "arguments(posonlyargs=[], args=[arg(arg='e', annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "has_subquery": "arguments(posonlyargs=[], args=[arg(arg='e')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "aggregates": "arguments(posonlyargs=[], args=[arg(arg='e')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "Scope": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='sources', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load())), arg(arg='outer', annotation=BinOp(left=Name(id='Scope', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "key:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='c', annotation=Name(id='Column', ctx=Load())), arg(arg='outputs', annotation=Name(id='bool', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=False)])"
+    },
+    "Plan": {
+      "scope": "AnnAssign(target=Name(id='scope', ctx=Store()), annotation=Name(id='Scope', ctx=Load()), simple=1)",
+      "sources": "AnnAssign(target=Name(id='sources', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Source', ctx=Load()), ctx=Load()), simple=1)",
+      "columns": "AnnAssign(target=Name(id='columns', ctx=Store()), annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load()), simple=1)",
+      "derived": "AnnAssign(target=Name(id='derived', ctx=Store()), annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='dict', ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load()), simple=1)",
+      "pushed": "AnnAssign(target=Name(id='pushed', ctx=Store()), annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load()), simple=1)",
+      "joins": "AnnAssign(target=Name(id='joins', ctx=Store()), annotation=Subscript(value=Name(id='dict', ctx=Load()), slice=Tuple(elts=[Name(id='str', ctx=Load()), Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='list', ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load())], ctx=Load()), ctx=Load()), simple=1)",
+      "where": "AnnAssign(target=Name(id='where', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "items": "AnnAssign(target=Name(id='items', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "names": "AnnAssign(target=Name(id='names', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), simple=1)",
+      "group": "AnnAssign(target=Name(id='group', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load()), simple=1)",
+      "aggregates": "AnnAssign(target=Name(id='aggregates', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Aggregate', ctx=Load()), ctx=Load()), simple=1)",
+      "having": "AnnAssign(target=Name(id='having', ctx=Store()), annotation=BinOp(left=Name(id='Expr', ctx=Load()), op=BitOr(), right=Constant(value=None)), simple=1)",
+      "order": "AnnAssign(target=Name(id='order', ctx=Store()), annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=[Name(id='Expr', ctx=Load()), Name(id='bool', ctx=Load())], ctx=Load()), ctx=Load()), ctx=Load()), simple=1)",
+      "cache": "AnnAssign(target=Name(id='cache', ctx=Store()), annotation=Name(id='dict', ctx=Load()), value=Call(func=Name(id='field', ctx=Load()), args=[], keywords=[keyword(arg='default_factory', value=Name(id='dict', ctx=Load()))]), simple=1)"
+    },
+    "Engine": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='interpreter')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "plan:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='q', annotation=Name(id='SelectQuery', ctx=Load())), arg(arg='outer', annotation=BinOp(left=Name(id='Scope', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "owner:Name(id='staticmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='e', annotation=Name(id='Expr', ctx=Load())), arg(arg='columns', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "bind:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='n'), arg(arg='scope', annotation=Name(id='Scope', ctx=Load())), arg(arg='resolve')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "run:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='q', annotation=Name(id='SelectQuery', ctx=Load())), arg(arg='outer', annotation=Name(id='dict', ctx=Load())), arg(arg='outer_scope', annotation=BinOp(left=Name(id='Scope', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "rows:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='p', annotation=Name(id='Plan', ctx=Load())), arg(arg='src', annotation=Name(id='Source', ctx=Load())), arg(arg='conditions', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='Expr', ctx=Load()), ctx=Load())), arg(arg='outer', annotation=Name(id='dict', ctx=Load())), arg(arg='positions')], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "join:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='p', annotation=Name(id='Plan', ctx=Load())), arg(arg='left', annotation=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='dict', ctx=Load()), ctx=Load())), arg(arg='src', annotation=Name(id='Source', ctx=Load())), arg(arg='outer', annotation=Name(id='dict', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "materialize": "arguments(posonlyargs=[], args=[arg(arg='e', annotation=Name(id='Expr', ctx=Load())), arg(arg='engine', annotation=Name(id='Engine', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
   },
   "controllers/shell.py": {
     "main": "arguments(posonlyargs=[], args=[arg(arg='argv', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])"
