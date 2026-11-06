@@ -742,7 +742,7 @@ print(db.execute("SELECT name FROM people WHERE age > 30 ORDER BY age DESC"))
 ```
 | Kind  | Statements |
 |-------|------------|
-| Data  | `INSERT INTO t [(cols)] VALUES (...), ...`<br>`SELECT * \| cols \| COUNT(*) FROM t [WHERE] [ORDER BY col [ASC\|DESC], ...] [LIMIT n [OFFSET m]]`<br>`UPDATE t SET col = value, ... [WHERE]`<br>`DELETE FROM t [WHERE]` |
+| Data  | `INSERT INTO t [(cols)] VALUES (...), ...`<br>`SELECT [DISTINCT] items FROM sources [WHERE] [GROUP BY ...] [HAVING] [ORDER BY expr [ASC\|DESC], ...] [LIMIT n [OFFSET m]]`<br>`UPDATE t SET col = value, ... [WHERE]`<br>`DELETE FROM t [WHERE]` |
 | Tables | `CREATE TABLE [IF NOT EXISTS] t (col type, ...)`, `DROP TABLE [IF EXISTS] t`<br>`ALTER TABLE t ADD col type \| DROP col \| ALTER col type \| RENAME col TO new`<br>`RENAME TABLE t TO new`, `COPY TABLE t TO new`, `TRUNCATE TABLE t`<br>`SHOW TABLES`, `DESCRIBE t` |
 | Files | `USE 'folder'` (switch data folder, created if missing)<br>`SHOW FILES` (table, file path, size, row count)<br>`COMPACT [TABLE t]` (rewrite one or every table file without its change history)<br>`IMPORT 'file.csv' INTO t` (creates `t` with inferred types if it doesn't exist)<br>`EXPORT [TABLE] t TO 'file.csv'` |
 
@@ -750,6 +750,32 @@ print(db.execute("SELECT name FROM people WHERE age > 30 ORDER BY age DESC"))
 Column types: `str`, `int`, `float`, `bool`, `list`, `dict`, `any`, `vector` (plus SQL aliases like `text`, `integer`, `real`).
 `ORDER BY COSINE(col, [x, ...])` or `DOT(...)` orders rows by vector similarity (see [Vector search](#vector-search-semantic-search)).
 In CSV files an empty field is NULL.
+
+#### Joins, groups and subqueries
+A SELECT can read more than one table and combine counts with other columns:
+```sql
+-- each top-level asset with its number of poses (0 when it has none)
+SELECT a.id, COUNT(p.id) AS poses FROM assets a LEFT JOIN assets p ON p.parent = a.id
+WHERE a.parent IS NULL GROUP BY a.id HAVING poses < 3 ORDER BY poses DESC;
+-- the same count as a correlated subquery
+SELECT id, (SELECT COUNT(*) FROM assets p WHERE p.parent = a.id) AS poses FROM assets a;
+SELECT id FROM assets WHERE id NOT IN (SELECT asset FROM uses);
+SELECT d.kind, d.n FROM (SELECT kind, COUNT(*) AS n FROM assets GROUP BY kind) AS d WHERE d.n > 1;
+```
+- Sources: `t [AS] a`, `[INNER] JOIN ... ON`, `LEFT [OUTER] JOIN ... ON`, `CROSS JOIN`, comma joins, and
+  `(SELECT ...) AS d`. Columns are `col` or `a.col`; a name in two sources must have the alias. `*` and `a.*`.
+- Items and conditions take expressions: `+ - * /` (NULL in gives NULL; `/ 0` gives NULL), `AS` names,
+  `COALESCE`, `IFNULL`, `LOWER`, `UPPER`, `LENGTH`, `ABS`, `ROUND`, `COSINE`, `DOT`.
+- Aggregates: `COUNT(*)`, `COUNT([DISTINCT] x)` (counts non-NULL values), `SUM`, `AVG`, `MIN`, `MAX`, with or
+  without `GROUP BY`. `HAVING` and `ORDER BY` can use `AS` names. Aggregates are not allowed in `WHERE`.
+- Subqueries: scalar `(SELECT ...)` (one column, at most one row), `x [NOT] IN (SELECT ...)`,
+  `[NOT] EXISTS (SELECT ...)`. They can use the outer query's columns. `UPDATE` and `DELETE` take subqueries
+  that do not use the outer table.
+- The planner pushes one-table conditions down to the table's search tree, joins equal keys with a hash join (or
+  index lookups when the left side is small), and runs a subquery once for each set of outer values it reads.
+  NULL join keys never match. A simple one-table SELECT keeps the original fast path.
+- Not supported: `RIGHT`/`FULL` joins, `UNION`, window functions, `CASE`. Joins, groups and subqueries are
+  Python only (see `dotnet/PARITY.md`).
 
 ## 3. HTTP server (optional)
 ```
@@ -828,6 +854,7 @@ src/siql/
 ├── controllers/         # optional query interpreter
 │   ├── parser.py        # tokenizer, parser, QueryError
 │   ├── interpreter.py   # Interpreter, Result, Command
+│   ├── query.py         # planner and engine for JOIN, GROUP BY and subqueries
 │   └── shell.py         # command line and interactive shell (python -m siql / siql)
 ├── server/              # optional HTTP server
 │   ├── config.py        # ServerConfig, siql.toml template
@@ -840,6 +867,7 @@ src/siql/
     ├── test_interpreter.py  # Database, parser, interpreter, management statements, command line
     ├── test_speedups.py     # C vs Python search functions; scan-based WHERE and ORDER BY
     ├── test_server.py       # HTTP API, config, systemd unit, CLI
+    ├── test_query.py        # joins, groups, aggregates, subqueries, expressions
     ├── test_mcp.py          # MCP server: handshake, tools, read-only mode, search
     ├── test_cache.py        # rolling cache coherence, accounting, and resizing
     ├── test_traversal_cache.py # caching inspected skip-list nodes

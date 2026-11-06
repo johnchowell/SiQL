@@ -67,6 +67,10 @@ class McpTests(unittest.TestCase):
         self.assertEqual(err[0], "error")
         self.assertIn("Read-only", err[1])
         self.assertEqual(self.call(s, "query", sql="SELECT COUNT(*) FROM assets")["rows"], [[4]])
+        r = self.call(s, "query", sql="SELECT a.kind, COUNT(b.id) AS n FROM assets a JOIN assets b ON b.kind = a.kind "
+                                      "GROUP BY a.kind ORDER BY a.kind")
+        self.assertEqual(r, {"columns": ["kind", "n"], "rows": [["background", 4], ["object", 4]], "rowcount": 2,
+                             "message": "2 rows"})
 
     def test_query_write_and_row_limit(self):
         s = Server(self.dir, write=True, max_rows=2)

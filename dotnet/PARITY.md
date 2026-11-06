@@ -47,4 +47,5 @@ The [CRUD methods review](../docs/CRUD_PERFORMANCE.md) documents the shared dele
 optimization and runtime-specific serialization/comparison improvements. Regressions cover
 eager cleanup, offset rebuilds, append/middle insert, rollback, exact mixed numeric comparison,
 and Unicode scalar ordering. Existing feature switches and file semantics remain shared.
+| SQL `JOIN` (inner, left, cross, comma), `GROUP BY`/`HAVING`, `SUM`/`AVG`/`MIN`/`MAX`, `COUNT(DISTINCT)`, `SELECT DISTINCT`, expressions, functions, `AS` names, derived tables and subqueries (`siql.controllers.query`, `SelectQuery`) | Python only for now. The C# interpreter still runs the one-table `SELECT`; a simple one-table query parses to the same `Select` in both. |
 | `siql-mcp` MCP server (`siql.mcp`) for AI agents | Python only. It is a tool around the Python package, like `siql-server`'s HTTP API it uses the interpreter; a C# MCP server is not planned. |

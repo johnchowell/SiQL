@@ -13,7 +13,7 @@ from ..helpers.types import type_name
 from ..helpers.vector import Vector
 from .parser import (QueryError, OPERATORS, parse, Statement, Expr, Column, Literal, Compare, And, Or, Not,
                      IsNull, In, Like, CreateTable, DropTable, AddColumn,
-                     DropColumn, AlterColumn, Insert, Select, Update, Delete, ShowTables, Describe,
+                     DropColumn, AlterColumn, Insert, Select, SelectQuery, Update, Delete, ShowTables, Describe,
                      RenameColumn, RenameTable, CopyTable, Truncate, Compact, Use, ShowFiles, Import, Export)
 
 
@@ -197,7 +197,7 @@ class Interpreter():
         handlers = {
             CreateTable: self._create, DropTable: self._drop, AddColumn: self._add_column,
             DropColumn: self._drop_column, AlterColumn: self._alter_column, Insert: self._insert,
-            Select: self._select, Update: self._update, Delete: self._delete,
+            Select: self._select, SelectQuery: self._select_query, Update: self._update, Delete: self._delete,
             ShowTables: self._show, Describe: self._describe, RenameColumn: self._rename_column,
             RenameTable: self._rename_table, CopyTable: self._copy_table, Truncate: self._truncate,
             Compact: self._compact, Use: self._use, ShowFiles: self._show_files, Import: self._import,
@@ -529,18 +529,29 @@ class Interpreter():
         rows = [self._record(t, i) for i in indices]
         return Result(columns, [[r[c] for c in columns] for r in rows], len(rows), _plural(len(rows), "row"))
 
+    def _select_query(self, s: SelectQuery) -> Result:
+        from .query import Engine
+        return Engine(self).run(s, {}, None)
+
+    def _where(self, where: Expr | None) -> Expr | None:
+        """UPDATE and DELETE conditions with their subqueries run once and replaced by their values."""
+        from .query import Engine, aggregates, has_subquery, materialize
+        if where is not None and aggregates(where):
+            raise QueryError("Aggregates can only be used in a SELECT")
+        return materialize(where, Engine(self)) if where is not None and has_subquery(where) else where
+
     def _update(self, s: Update) -> Result:
         t = self._table(s.table)
         self._check_columns(t, s.values)
         types = self._types(t)
         values = {c: _coerce(v, types[c], c) for c, v in s.values.items()}
-        matched = self._matching(t, s.where)
+        matched = self._matching(t, self._where(s.where))
         TableDiff([SetCell(i, c, v) for i in matched for c, v in values.items()]).apply(t)
         return Result(rowcount=len(matched), message=f"Updated {_plural(len(matched), 'row')}")
 
     def _delete(self, s: Delete) -> Result:
         t = self._table(s.table)
-        matched = self._matching(t, s.where)
+        matched = self._matching(t, self._where(s.where))
         TableDiff([DropRow(i) for i in reversed(matched)]).apply(t)
         return Result(rowcount=len(matched), message=f"Deleted {_plural(len(matched), 'row')}")
 
