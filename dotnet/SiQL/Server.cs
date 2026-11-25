@@ -433,6 +433,10 @@ public sealed class SiQLServer : IDisposable
     async Task Handle(HttpListenerContext context)
     {
         lock (metaLock) requestCount++;
+        string remote = "";
+        try { remote = context.Request.RemoteEndPoint?.ToString() ?? ""; } catch { }
+        string rawUrl = context.Request.RawUrl ?? "/";
+        string method = context.Request.HttpMethod;
         object? payload = null;
         int status = 200;
         string contentType = "application/json";
@@ -440,11 +444,9 @@ public sealed class SiQLServer : IDisposable
         var extraHeaders = new Dictionary<string, string>();
         try
         {
-            string rawUrl = context.Request.RawUrl ?? "/";
             int qIdx = rawUrl.IndexOf('?');
             string route = qIdx < 0 ? rawUrl : rawUrl[..qIdx];
             string queryString = qIdx < 0 ? "" : rawUrl[(qIdx + 1)..];
-            string method = context.Request.HttpMethod;
 
             if (method == "OPTIONS")
             {
@@ -708,7 +710,7 @@ public sealed class SiQLServer : IDisposable
                 context.Response.KeepAlive = false;
             if (data.Length > 0)
                 await context.Response.OutputStream.WriteAsync(data);
-            Log("INFO", $"{context.Request.RemoteEndPoint} {context.Request.HttpMethod} {context.Request.RawUrl} {status}");
+            Log("INFO", $"{remote} {method} {rawUrl} {status}");
         }
         finally { context.Response.Close(); }
     }
