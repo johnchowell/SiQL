@@ -28,8 +28,8 @@ change with `python tools/dotnet_parity.py --update-api`, then run the parity su
 | Result/to_dict/text formatting | Result/ToDictionary/ToString/TextFormat.Box | Shared results, console output |
 | Literal values, type names, equality | ColumnType/Values/PythonLiteral | Numeric equality, nested literals, Unicode, bytes, complex |
 | CSV inference/import/export | Csv and Interpreter file operations | Round-trip, inference, invalid-input rollback |
-| HTTP server/config/token/body limits | SiQLServer/ServerConfig | HTTP integration checks and configuration |
-| TOML/SIQL_TOKEN/systemd/CLI/demo | ServerConfig.Load/Service.SystemdUnit/SiQL.Cli | Compiled CLI and package smoke tests |
+| HTTP server/config/token/body limits/telemetry/admin UI | SiQLServer/ServerConfig/AdminUi | HTTP integration checks, REST endpoints, admin console, and configuration |
+| TOML/SIQL_TOKEN/systemd/CLI/demo | ServerConfig.Load/Service.SystemdUnit/SiQL.Cli | Compiled CLI, systemd Type=notify unit, and package smoke tests |
 | ErrorHandler | ErrorHandler | Same placeholder public type |
 
 CLR types/exceptions, assembly layout, launcher syntax, allocation sizes, and the absence of

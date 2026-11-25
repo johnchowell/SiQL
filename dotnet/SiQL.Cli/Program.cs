@@ -30,7 +30,7 @@ static class Cli
             }
             if (Flag("--help") || Flag("-h"))
             {
-                Console.WriteLine("siql-dotnet [-d DIR] [-f FILE] [SQL ...]\nsiql-dotnet serve [-c CONFIG] [--host HOST] [--port PORT] [--data-dir DIR]\nsiql-dotnet init [-c CONFIG] [--force]\nsiql-dotnet systemd [-c CONFIG] [--user USER] [-o FILE]");
+                Console.WriteLine("siql-dotnet [-d DIR] [-f FILE] [SQL ...]\nsiql-dotnet serve [-c CONFIG] [--host HOST] [--port PORT] [--data-dir DIR] [--no-admin]\nsiql-dotnet init [-c CONFIG] [--force]\nsiql-dotnet systemd [-c CONFIG] [--user USER] [--simple] [-o FILE]");
                 return 0;
             }
             string? verb = words.Count > 0 && words[0] is "serve" or "init" or "systemd" or "demo" ? words[0] : null;
@@ -52,8 +52,9 @@ static class Cli
                 {
                     if (!File.Exists(path))
                         throw new ArgumentException($"No config file at {path}; create one with: siql-dotnet init");
+                    bool simple = Flag("--simple");
                     string? user = Take("--user", "--user"), output = Take("-o", "--output");
-                    string unit = Service.SystemdUnit(path!, assembly: typeof(Cli).Assembly.Location, user: user);
+                    string unit = Service.SystemdUnit(path!, assembly: typeof(Cli).Assembly.Location, user: user, notify: !simple);
                     if (output is null)
                         Console.Write(unit);
                     else
@@ -61,6 +62,8 @@ static class Cli
                     return 0;
                 }
                 var config = path is null ? new ServerConfig() : ServerConfig.Load(path);
+                if (Flag("--no-admin"))
+                    config.AdminEnabled = false;
                 config.Host = Take("--host", "--host", config.Host)!;
                 config.DataDir = Take("-d", "--data-dir", config.DataDir)!;
                 if (Take("--port", "--port") is { } port)

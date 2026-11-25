@@ -9,7 +9,7 @@ MODULES = (
     "helpers.error_handler", "helpers.format", "helpers.search", "helpers.types",
     "managers.database", "managers.table_file",
     "models.cache", "models.diff", "models.prefix", "models.row", "models.table", "models.tree",
-    "server.app", "server.cli", "server.config", "server.service",
+    "server.admin", "server.app", "server.cli", "server.config", "server.runtime", "server.service",
 )
 
 

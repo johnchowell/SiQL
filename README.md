@@ -689,31 +689,51 @@ print(db.execute("SELECT name FROM people WHERE age > 30 ORDER BY age DESC"))
 Column types: `str`, `int`, `float`, `bool`, `list`, `dict`, `any` (plus SQL aliases like `text`, `integer`, `real`).
 In CSV files an empty field is NULL.
 
-## 3. HTTP server (optional)
+## 3. Linux system runtime, HTTP server, and Admin Web UI (optional)
 ```
 siql-server init                            # writes siql.toml
 siql-server serve -c siql.toml              # or: python -m siql.server serve -c siql.toml
+siql-server status                          # inspect live daemon telemetry
+siql-server query "SHOW TABLES"             # run queries over TCP or --unix-socket
 ```
-| Method | Path      | Body                  | Response                                                     |
-|--------|-----------|-----------------------|--------------------------------------------------------------|
-| GET    | `/health` |                       | `{"status": "ok", "version": "..."}`                         |
-| GET    | `/tables` |                       | `{"tables": [...]}`                                          |
-| POST   | `/query`  | `{"query": "..."}`     | `{"results": [{"columns", "rows", "rowcount", "message"}]}`  |
+Open `http://127.0.0.1:8642/admin` in a browser for the built-in Admin Web UI with an interactive
+query block, table/schema explorer, cache inspector, query history, and runtime metrics.
+
+| Method | Path                          | Body              | Response                                                      |
+|--------|-------------------------------|-------------------|---------------------------------------------------------------|
+| GET    | `/`                           |                   | `302` redirect to `/admin` (when `admin_enabled = true`)      |
+| GET    | `/admin`                      |                   | Self-contained Admin Web UI with SQL query block              |
+| GET    | `/health`                     |                   | `{"status": "ok", "version": "...", "uptime_seconds": ...}`   |
+| GET    | `/tables`                     |                   | `{"tables": [...]}`                                           |
+| POST   | `/query`, `/api/query`        | `{"query": "..."}`| `{"results": [{"columns", "rows", "rowcount", "message"}], "elapsed_ms"}` |
+| GET    | `/api/status`                 |                   | Runtime, database, process (`/proc/self`), and request stats  |
+| GET    | `/api/tables`                 |                   | `{"tables": [{"name", "rows", "columns", "bytes"}, ...]}`     |
+| GET    | `/api/tables/<name>`          |                   | Schema, cache stats, and paginated rows (`?limit=50&offset=0`)|
+| POST   | `/api/tables/<name>/compact`  |                   | `{"table", "bytes_before", "bytes_after"}`                    |
+| DELETE | `/api/tables/<name>`          |                   | `{"deleted", "message"}`                                      |
+| GET    | `/api/history`                |                   | `{"history": [...]}`                                          |
+| DELETE | `/api/history`                |                   | `{"cleared": true}`                                           |
+| GET    | `/metrics`                    |                   | Prometheus text exposition metrics                            |
 
 ```
 curl -X POST http://127.0.0.1:8642/query -H "Content-Type: application/json" -d '{"query": "SHOW TABLES"}'
 ```
 Set a token (`token` in `siql.toml`, or the `SIQL_TOKEN` environment variable) to require
-`Authorization: Bearer <token>` on everything except `/health`. The server listens on 127.0.0.1 by default;
-set a token before binding to another address. It speaks plain HTTP, so put it behind a TLS reverse proxy if
-it's reachable over a network. `USE`, `IMPORT` and `EXPORT` are disabled on the server, since they would let
-clients read and write files outside the data folder.
+`Authorization: Bearer <token>` on everything except `/health`, `/`, and `/admin` (the Admin UI
+prompts for the token in the browser and stores it only in `sessionStorage`). The server listens on
+`127.0.0.1` by default; set a token before binding to another address. On Linux you can also enable a
+Unix domain socket (`unix_socket = "/run/siql/siql.sock"` or `--unix-socket`). It speaks plain HTTP,
+so put it behind a TLS reverse proxy if it's reachable over a network. `USE`, `IMPORT` and `EXPORT`
+are disabled on the server, since they would let clients read and write files outside the data folder.
 
-Run it as a Linux service with systemd:
+Run it as a Linux daemon with systemd (`Type=notify`, `sd_notify` readiness & watchdog, graceful
+`SIGTERM` shutdown, and `SIGHUP` configuration reload):
 ```
 siql-server systemd -c /srv/siql/siql.toml --user siql -o siql.service
 sudo cp siql.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now siql
+# Or install directly:
+sudo siql-server install -c /srv/siql/siql.toml --user siql --enable
 ```
 
 ## Project layout
@@ -742,10 +762,12 @@ src/siql/
 │   ├── parser.py        # tokenizer, parser, QueryError
 │   ├── interpreter.py   # Interpreter, Result, Command
 │   └── shell.py         # command line and interactive shell (python -m siql / siql)
-├── server/              # optional HTTP server
+├── server/              # optional Linux system runtime, HTTP server & Admin UI
+│   ├── admin.py         # self-contained Admin Web UI (/admin)
 │   ├── config.py        # ServerConfig, siql.toml template
-│   ├── app.py           # SiQLServer, serve
-│   ├── service.py       # systemd unit generator
+│   ├── app.py           # SiQLServer, Unix socket listener, REST/metrics API, serve()
+│   ├── runtime.py       # systemd sd_notify, watchdog, /proc metrics, HTTP/Unix client
+│   ├── service.py       # systemd Type=notify unit generator & installer
 │   └── cli.py           # `siql-server` command
 └── tests/
     ├── test_core.py         # package layout, models, diff, manager, controller, helpers

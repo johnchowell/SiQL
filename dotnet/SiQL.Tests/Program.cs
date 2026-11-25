@@ -221,7 +221,10 @@ try
         var serve = server.ServeAsync(stop.Token);
         using var http = new HttpClient { BaseAddress = server.Address };
         Assert((await http.GetAsync("health")).StatusCode == HttpStatusCode.OK, "health");
+        Assert((await http.GetAsync("admin")).StatusCode == HttpStatusCode.OK, "admin UI");
         Assert((await http.GetAsync("tables")).StatusCode == HttpStatusCode.Unauthorized, "auth");
+        Assert((await http.GetAsync("api/status")).StatusCode == HttpStatusCode.Unauthorized, "auth api/status");
+        Assert((await http.GetAsync("metrics")).StatusCode == HttpStatusCode.Unauthorized, "auth metrics");
         http.DefaultRequestHeaders.Authorization = new("Bearer", "secret");
         Task<HttpResponseMessage> Post(string query) => http.PostAsync("query", new StringContent(JsonSerializer.Serialize(new
         {
@@ -229,6 +232,13 @@ try
         }), Encoding.UTF8, "application/json"));
         var response = await Post("CREATE TABLE t (x int); INSERT INTO t VALUES (1); SELECT * FROM t");
         Assert(response.StatusCode == HttpStatusCode.OK, "HTTP query " + await response.Content.ReadAsStringAsync());
+        Assert((await http.GetAsync("api/status")).StatusCode == HttpStatusCode.OK, "api/status");
+        Assert((await http.GetAsync("api/tables")).StatusCode == HttpStatusCode.OK, "api/tables");
+        Assert((await http.GetAsync("api/tables/t?limit=10&offset=0")).StatusCode == HttpStatusCode.OK, "api/tables/t");
+        Assert((await http.PostAsync("api/tables/t/compact", null)).StatusCode == HttpStatusCode.OK, "api/tables/t/compact");
+        Assert((await http.GetAsync("api/history")).StatusCode == HttpStatusCode.OK, "api/history");
+        Assert((await http.GetAsync("metrics")).StatusCode == HttpStatusCode.OK, "metrics");
+        Assert((await http.DeleteAsync("api/history")).StatusCode == HttpStatusCode.OK, "delete api/history");
         response = await Post("INSERT INTO t VALUES (2); SELECT * FROM missing");
         Assert(response.StatusCode == HttpStatusCode.BadRequest, "HTTP partial failure");
         using (var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
@@ -243,6 +253,7 @@ try
         Assert(response.StatusCode == HttpStatusCode.RequestEntityTooLarge, "HTTP request body limit");
         response = await Post("USE '..'");
         Assert(response.StatusCode == HttpStatusCode.BadRequest, "HTTP file restrictions retained");
+        Assert((await http.DeleteAsync("api/tables/t")).StatusCode == HttpStatusCode.OK, "delete api/tables/t");
         Assert((await http.GetAsync("missing")).StatusCode == HttpStatusCode.NotFound, "HTTP missing route");
         stop.Cancel();
         await serve;
