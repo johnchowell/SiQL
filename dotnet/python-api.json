@@ -457,15 +457,30 @@
       "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='status', annotation=Name(id='HTTPStatus', ctx=Load())), arg(arg='message', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='extra'), defaults=[])"
     },
     "SiQLServer": {
-      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "serve_forever:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='poll_interval', annotation=Name(id='float', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=0.5)])",
+      "shutdown:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "server_close:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "reload_config:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='new_config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "count_request:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "record_query:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='query', annotation=Name(id='str', ctx=Load())), arg(arg='ok', annotation=Name(id='bool', ctx=Load())), arg(arg='statements', annotation=Name(id='int', ctx=Load())), arg(arg='elapsed_ms', annotation=Name(id='float', ctx=Load())), arg(arg='error', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])",
+      "tables_snapshot:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "status_snapshot:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "table_detail:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='limit', annotation=Name(id='int', ctx=Load())), arg(arg='offset', annotation=Name(id='int', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=50), Constant(value=0)])",
+      "history_snapshot:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "clear_history:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "metrics_text:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
     },
     "_Handler": {
       "server": "AnnAssign(target=Name(id='server', ctx=Store()), annotation=Name(id='SiQLServer', ctx=Load()), simple=1)",
       "do_GET:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "do_POST:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "do_DELETE:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "do_OPTIONS:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+      "address_string:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "log_message:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='format')], vararg=arg(arg='args'), kwonlyargs=[], kw_defaults=[], defaults=[])"
     },
-    "serve": "arguments(posonlyargs=[], args=[arg(arg='config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    "serve": "arguments(posonlyargs=[], args=[arg(arg='config', annotation=Name(id='ServerConfig', ctx=Load()))], kwonlyargs=[arg(arg='config_path', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kw_defaults=[Constant(value=None)], defaults=[])"
   },
   "server/cli.py": {
     "main": "arguments(posonlyargs=[], args=[arg(arg='argv', annotation=BinOp(left=Subscript(value=Name(id='list', ctx=Load()), slice=Name(id='str', ctx=Load()), ctx=Load()), op=BitOr(), right=Constant(value=None)))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=None)])"
@@ -478,11 +493,26 @@
       "token": "AnnAssign(target=Name(id='token', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "max_body": "AnnAssign(target=Name(id='max_body', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=BinOp(left=Constant(value=1024), op=Mult(), right=Constant(value=1024)), simple=1)",
       "log_level": "AnnAssign(target=Name(id='log_level', ctx=Store()), annotation=Name(id='str', ctx=Load()), value=Constant(value='INFO'), simple=1)",
+      "unix_socket": "AnnAssign(target=Name(id='unix_socket', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
+      "admin_enabled": "AnnAssign(target=Name(id='admin_enabled', ctx=Store()), annotation=Name(id='bool', ctx=Load()), value=Constant(value=True), simple=1)",
+      "history_limit": "AnnAssign(target=Name(id='history_limit', ctx=Store()), annotation=Name(id='int', ctx=Load()), value=Constant(value=100), simple=1)",
+      "cors_origin": "AnnAssign(target=Name(id='cors_origin', ctx=Store()), annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)), value=Constant(value=None), simple=1)",
       "load:Name(id='classmethod', ctx=Load())": "arguments(posonlyargs=[], args=[arg(arg='cls'), arg(arg='path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
       "__post_init__:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
     }
   },
+  "server/runtime.py": {
+    "sd_notify": "arguments(posonlyargs=[], args=[arg(arg='state', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "watchdog_interval": "arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "process_metrics": "arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[])",
+    "_UnixHTTPConnection": {
+      "__init__:": "arguments(posonlyargs=[], args=[arg(arg='self'), arg(arg='socket_path', annotation=Name(id='str', ctx=Load())), arg(arg='timeout', annotation=Name(id='float', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[Constant(value=10.0)])",
+      "connect:": "arguments(posonlyargs=[], args=[arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[])"
+    },
+    "http_request": "arguments(posonlyargs=[], args=[arg(arg='url', annotation=Name(id='str', ctx=Load())), arg(arg='path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[arg(arg='method', annotation=Name(id='str', ctx=Load())), arg(arg='body', annotation=BinOp(left=Name(id='dict', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='token', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='unix_socket', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='timeout', annotation=Name(id='float', ctx=Load()))], kw_defaults=[Constant(value='GET'), Constant(value=None), Constant(value=None), Constant(value=None), Constant(value=10.0)], defaults=[])"
+  },
   "server/service.py": {
-    "systemd_unit": "arguments(posonlyargs=[], args=[arg(arg='config_path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[arg(arg='python', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='user', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='description', annotation=Name(id='str', ctx=Load()))], kw_defaults=[Constant(value=None), Constant(value=None), Constant(value='SiQL server')], defaults=[])"
+    "systemd_unit": "arguments(posonlyargs=[], args=[arg(arg='config_path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[arg(arg='python', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='user', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='description', annotation=Name(id='str', ctx=Load())), arg(arg='notify', annotation=Name(id='bool', ctx=Load())), arg(arg='watchdog_sec', annotation=Name(id='int', ctx=Load())), arg(arg='runtime_dir', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None)))], kw_defaults=[Constant(value=None), Constant(value=None), Constant(value='SiQL server'), Constant(value=True), Constant(value=30), Constant(value='siql')], defaults=[])",
+    "install_systemd_unit": "arguments(posonlyargs=[], args=[arg(arg='config_path', annotation=Name(id='str', ctx=Load()))], kwonlyargs=[arg(arg='name', annotation=Name(id='str', ctx=Load())), arg(arg='python', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='user', annotation=BinOp(left=Name(id='str', ctx=Load()), op=BitOr(), right=Constant(value=None))), arg(arg='description', annotation=Name(id='str', ctx=Load())), arg(arg='notify', annotation=Name(id='bool', ctx=Load())), arg(arg='unit_dir', annotation=Name(id='str', ctx=Load())), arg(arg='enable', annotation=Name(id='bool', ctx=Load()))], kw_defaults=[Constant(value='siql'), Constant(value=None), Constant(value=None), Constant(value='SiQL server'), Constant(value=True), Constant(value='/etc/systemd/system'), Constant(value=False)], defaults=[])"
   }
 }
